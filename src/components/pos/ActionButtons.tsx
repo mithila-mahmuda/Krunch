@@ -18,7 +18,7 @@ export function ActionButtons() {
         onClick={() => {
           if (window.confirm("Clear the entire order?")) clearOrder();
         }}
-        className="min-h-[52px] rounded-md bg-[var(--action-delete)] text-sm font-bold uppercase tracking-wide text-white transition hover:brightness-110 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+        className="min-h-12 rounded-md bg-[var(--action-delete)] text-xs font-bold uppercase tracking-wide text-white transition hover:brightness-110 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-[52px] sm:text-sm"
       >
         Delete
       </button>
@@ -30,7 +30,7 @@ export function ActionButtons() {
             `Order held / sent to kitchen.\nItems: ${totals.itemCount}\nTotal: £${totals.total.toFixed(2)}`,
           )
         }
-        className="min-h-[52px] rounded-md bg-[var(--action-order)] text-sm font-bold uppercase leading-tight tracking-wide text-white transition hover:brightness-110 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+        className="min-h-12 rounded-md bg-[var(--action-order)] text-xs font-bold uppercase leading-tight tracking-wide text-white transition hover:brightness-110 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-[52px] sm:text-sm"
       >
         Order
         <br />
@@ -44,7 +44,7 @@ export function ActionButtons() {
             `Payment screen coming next.\nAmount due: £${totals.due.toFixed(2)}`,
           )
         }
-        className="min-h-[52px] rounded-md bg-[var(--action-pay)] text-sm font-bold uppercase tracking-wide text-white transition hover:brightness-110 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+        className="min-h-12 rounded-md bg-[var(--action-pay)] text-xs font-bold uppercase tracking-wide text-white transition hover:brightness-110 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-[52px] sm:text-sm"
       >
         Pay
       </button>

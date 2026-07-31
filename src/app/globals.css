@@ -45,11 +45,19 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-body), "Segoe UI", sans-serif;
+  overflow-x: clip;
 }
 
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
 }
 
 .pos-tile {
@@ -161,5 +169,15 @@ a {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pos-tile,
+  .animate-in,
+  .login-hero,
+  .login-card,
+  .login-form > * {
+    animation: none !important;
   }
 }

@@ -22,8 +22,8 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   if (!hydrated || !user) {
     return (
-      <div className="flex h-dvh items-center justify-center bg-[var(--pos-menu)] text-white">
-        <p className="font-[family-name:var(--font-display)] text-2xl font-bold">
+      <div className="flex h-dvh items-center justify-center bg-[var(--pos-menu)] px-4 text-white">
+        <p className="font-[family-name:var(--font-display)] text-xl font-bold sm:text-2xl">
           Checking session…
         </p>
       </div>

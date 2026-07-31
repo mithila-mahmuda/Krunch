@@ -26,8 +26,8 @@ export function LoginScreen() {
       <div className="login-atmosphere" aria-hidden="true" />
       <div className="login-grain" aria-hidden="true" />
 
-      <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 items-center px-5 py-6 sm:px-8 sm:py-10 lg:px-12">
-        <div className="grid w-full items-center gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
+      <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 items-center px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] sm:px-8 sm:py-10 lg:px-12">
+        <div className="grid w-full items-center gap-5 sm:gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
           <section className="login-hero max-w-xl text-white">
             <p className="font-[family-name:var(--font-display)] text-4xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl">
               krunch
@@ -41,10 +41,10 @@ export function LoginScreen() {
             </p>
           </section>
 
-          <section className="login-card w-full max-w-md justify-self-start lg:justify-self-end">
-            <div className="rounded-2xl border border-white/50 bg-white p-5 shadow-[0_24px_60px_rgba(8,28,54,0.28)] sm:p-8">
+          <section className="login-card w-full max-w-md justify-self-stretch sm:justify-self-start lg:justify-self-end">
+            <div className="rounded-2xl border border-white/50 bg-white p-4 shadow-[0_24px_60px_rgba(8,28,54,0.28)] sm:p-8">
               <div className="mb-5">
-                <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                <h2 className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
                   Staff sign in
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">

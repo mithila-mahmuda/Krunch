@@ -35,13 +35,13 @@ export function UtilityButtons() {
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-1.5 border-t border-slate-200 px-2 py-2">
+    <div className="grid grid-cols-2 gap-1.5 border-t border-slate-200 px-2 py-2 min-[400px]:grid-cols-3">
       {buttons.map((button) => (
         <button
           key={button.label}
           type="button"
           onClick={button.onClick}
-          className={`min-h-[44px] rounded-md border px-1.5 py-1.5 text-[10px] font-bold uppercase leading-tight tracking-wide whitespace-pre-line transition active:scale-[0.98] ${
+          className={`min-h-11 rounded-md border px-1.5 py-1.5 text-[10px] font-bold uppercase leading-tight tracking-wide whitespace-pre-line transition active:scale-[0.98] sm:min-h-[44px] ${
             button.accent
               ? "border-[var(--pos-accent)] bg-[var(--pos-accent-soft)] text-[var(--pos-accent)]"
               : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"

@@ -4,6 +4,9 @@ import { useEffect, useRef } from "react";
 import { formatMoney } from "@/lib/format";
 import { usePosStore } from "@/store/pos-store";
 
+const rowGrid =
+  "grid w-full grid-cols-[minmax(0,1fr)_2.25rem_minmax(3.25rem,auto)] gap-1 @[340px]:grid-cols-[minmax(0,1fr)_2.5rem_4.5rem_4.5rem]";
+
 export function OrderLineList() {
   const lines = usePosStore((state) => state.lines);
   const selectedLineId = usePosStore((state) => state.selectedLineId);
@@ -16,7 +19,7 @@ export function OrderLineList() {
 
   if (lines.length === 0) {
     return (
-      <div className="flex min-h-0 flex-1 items-center justify-center px-6 text-center">
+      <div className="flex min-h-0 flex-1 items-center justify-center px-4 text-center sm:px-6">
         <div>
           <p className="text-base font-semibold text-slate-700">No items yet</p>
           <p className="mt-1 text-sm text-slate-500">
@@ -28,11 +31,13 @@ export function OrderLineList() {
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-auto">
-      <div className="sticky top-0 z-10 grid grid-cols-[1fr_40px_72px_72px] gap-1 border-b border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+    <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
+      <div
+        className={`sticky top-0 z-10 ${rowGrid} border-b border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-slate-500`}
+      >
         <span>Item</span>
         <span className="text-center">Qty</span>
-        <span className="text-right">Price</span>
+        <span className="hidden text-right @[340px]:block">Price</span>
         <span className="text-right">Total</span>
       </div>
 
@@ -49,7 +54,7 @@ export function OrderLineList() {
               <button
                 type="button"
                 onClick={() => selectLine(line.id)}
-                className={`grid w-full grid-cols-[1fr_40px_72px_72px] gap-1 px-3 py-2.5 text-left text-sm transition ${
+                className={`${rowGrid} px-3 py-2.5 text-left text-sm transition ${
                   selected
                     ? "bg-[var(--pos-selected)]"
                     : "hover:bg-slate-50"
@@ -73,7 +78,7 @@ export function OrderLineList() {
                 <span className="text-center font-medium text-slate-800">
                   {line.quantity}
                 </span>
-                <span className="text-right text-slate-700">
+                <span className="hidden text-right text-slate-700 @[340px]:block">
                   {formatMoney(line.unitPrice)}
                 </span>
                 <span className="text-right font-semibold text-slate-900">

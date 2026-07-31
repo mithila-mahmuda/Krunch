@@ -14,11 +14,11 @@ export function ItemControls() {
   const selected = lines.find((line) => line.id === selectedLineId);
 
   if (!selected) {
-    return <div className="h-14 shrink-0 border-t border-slate-200 bg-slate-50" />;
+    return <div className="h-12 shrink-0 border-t border-slate-200 bg-slate-50 sm:h-14" />;
   }
 
   return (
-    <div className="flex h-14 shrink-0 items-center gap-2 border-t border-slate-200 bg-slate-50 px-3">
+    <div className="flex h-12 shrink-0 items-center gap-1.5 border-t border-slate-200 bg-slate-50 px-2 sm:h-14 sm:gap-2 sm:px-3">
       <button
         type="button"
         onClick={() => {

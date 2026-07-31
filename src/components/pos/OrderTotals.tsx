@@ -11,19 +11,19 @@ export function OrderTotals() {
   const totals = computeTotals(lines, serviceEnabled);
 
   return (
-    <div className="grid grid-cols-2 gap-3 border-t border-slate-200 px-3 py-2">
-      <div className="space-y-1.5 text-sm">
-        <div className="flex items-baseline justify-between">
+    <div className="grid grid-cols-2 gap-2 border-t border-slate-200 px-2 py-2 sm:gap-3 sm:px-3">
+      <div className="space-y-1.5 text-xs sm:text-sm">
+        <div className="flex items-baseline justify-between gap-2">
           <span className="font-bold uppercase tracking-wide text-slate-500">
             Items
           </span>
-          <span className="text-lg font-bold text-slate-900">
+          <span className="text-base font-bold text-slate-900 sm:text-lg">
             {totals.itemCount}
           </span>
         </div>
-        <div className="flex items-baseline justify-between">
+        <div className="flex items-baseline justify-between gap-2">
           <span className="font-bold uppercase tracking-wide text-slate-500">
-            Total Discount
+            Discount
           </span>
           <span className="font-semibold text-slate-800">
             {formatMoney(totals.totalDiscount)}
@@ -38,7 +38,7 @@ export function OrderTotals() {
             role="switch"
             aria-checked={serviceEnabled}
             onClick={toggleService}
-            className={`relative h-6 w-11 rounded-full transition ${
+            className={`relative h-6 w-11 shrink-0 rounded-full transition ${
               serviceEnabled ? "bg-[var(--pos-accent)]" : "bg-slate-300"
             }`}
           >
@@ -51,12 +51,12 @@ export function OrderTotals() {
         </label>
       </div>
 
-      <div className="space-y-0.5 text-right">
+      <div className="min-w-0 space-y-0.5 text-right">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
             Total
           </p>
-          <p className="text-2xl font-black tracking-tight text-slate-900">
+          <p className="truncate text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
             {formatMoney(totals.total)}
           </p>
         </div>

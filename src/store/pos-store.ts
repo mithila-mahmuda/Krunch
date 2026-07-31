@@ -17,9 +17,11 @@ interface PosState {
   serviceEnabled: boolean;
   activeTab: SidebarTab;
   navOpen: boolean;
+  orderPanelOpen: boolean;
   setActiveCategory: (categoryId: string | null) => void;
   setActiveTab: (tab: SidebarTab) => void;
   setNavOpen: (open: boolean) => void;
+  setOrderPanelOpen: (open: boolean) => void;
   addProduct: (product: Product) => void;
   selectLine: (lineId: string | null) => void;
   updateQuantity: (lineId: string, delta: number) => void;
@@ -78,10 +80,12 @@ export const usePosStore = create<PosState>((set) => ({
   serviceEnabled: false,
   activeTab: "menu",
   navOpen: false,
+  orderPanelOpen: false,
 
   setActiveCategory: (categoryId) => set({ activeCategoryId: categoryId }),
   setActiveTab: (tab) => set({ activeTab: tab }),
   setNavOpen: (open) => set({ navOpen: open }),
+  setOrderPanelOpen: (open) => set({ orderPanelOpen: open }),
 
   addProduct: (product) => {
     set((state) => {
