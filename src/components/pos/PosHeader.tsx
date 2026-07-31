@@ -13,6 +13,7 @@ export function PosHeader() {
   const router = useRouter();
   const setNavOpen = usePosStore((state) => state.setNavOpen);
   const setOrderPanelOpen = usePosStore((state) => state.setOrderPanelOpen);
+  const setSearchOpen = usePosStore((state) => state.setSearchOpen);
   const lines = usePosStore((state) => state.lines);
   const serviceEnabled = usePosStore((state) => state.serviceEnabled);
   const user = useAuthStore((state) => state.user);
@@ -73,6 +74,7 @@ export function PosHeader() {
         </button>
         <button
           type="button"
+          onClick={() => setSearchOpen(true)}
           className="flex h-10 w-10 items-center justify-center rounded-md transition hover:bg-white/10 active:scale-95"
           aria-label="Search products"
         >

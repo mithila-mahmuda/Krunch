@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Boxes,
   ClipboardList,
   CookingPot,
   LayoutGrid,
@@ -23,7 +24,7 @@ const links = [
   { href: "/tables", label: "Tabs & Tables", icon: UtensilsCrossed },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/menu", label: "Menu Manager", icon: Package },
-  { href: "/inventory", label: "Inventory", icon: Package },
+  { href: "/inventory", label: "Inventory", icon: Boxes },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

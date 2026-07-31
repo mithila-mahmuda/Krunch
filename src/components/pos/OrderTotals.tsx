@@ -1,8 +1,11 @@
 "use client";
 
 import { formatMoney } from "@/lib/format";
+import { SERVICE_RATE } from "@/lib/mock-data";
 import { computeTotals } from "@/lib/order-math";
 import { usePosStore } from "@/store/pos-store";
+
+const servicePercent = Math.round(SERVICE_RATE * 100);
 
 export function OrderTotals() {
   const lines = usePosStore((state) => state.lines);
@@ -29,14 +32,22 @@ export function OrderTotals() {
             {formatMoney(totals.totalDiscount)}
           </span>
         </div>
-        <label className="flex items-center justify-between gap-2">
-          <span className="font-bold uppercase tracking-wide text-slate-500">
-            Service
-          </span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="font-bold uppercase tracking-wide text-slate-500">
+              Service {servicePercent}%
+            </p>
+            <p className="text-[11px] font-semibold text-slate-600 sm:text-xs">
+              {serviceEnabled
+                ? formatMoney(totals.serviceCharge)
+                : "Off"}
+            </p>
+          </div>
           <button
             type="button"
             role="switch"
             aria-checked={serviceEnabled}
+            aria-label={`Service charge ${servicePercent} percent`}
             onClick={toggleService}
             className={`relative h-6 w-11 shrink-0 rounded-full transition ${
               serviceEnabled ? "bg-[var(--pos-accent)]" : "bg-slate-300"
@@ -48,7 +59,7 @@ export function OrderTotals() {
               }`}
             />
           </button>
-        </label>
+        </div>
       </div>
 
       <div className="min-w-0 space-y-0.5 text-right">

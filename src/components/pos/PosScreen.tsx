@@ -6,6 +6,8 @@ import { NavDrawer } from "@/components/pos/NavDrawer";
 import { OrderSidebar } from "@/components/pos/OrderSidebar";
 import { PosHeader } from "@/components/pos/PosHeader";
 import { ProductGrid } from "@/components/pos/ProductGrid";
+import { ProductSearch } from "@/components/pos/ProductSearch";
+import { StatusToast } from "@/components/pos/StatusToast";
 import { usePosStore } from "@/store/pos-store";
 
 export function PosScreen() {
@@ -22,6 +24,8 @@ export function PosScreen() {
       </div>
       <MobileOrderBar />
       <NavDrawer />
+      <ProductSearch />
+      <StatusToast />
     </div>
   );
 }

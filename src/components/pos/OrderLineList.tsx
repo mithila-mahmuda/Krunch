@@ -69,6 +69,11 @@ export function OrderLineList() {
                       Note: {line.note}
                     </p>
                   )}
+                  {line.manualDiscountAmount > 0 && (
+                    <p className="truncate text-xs font-medium text-rose-600">
+                      Discount −{formatMoney(line.manualDiscountAmount)}
+                    </p>
+                  )}
                   {line.promotionLabel && (
                     <p className="truncate text-xs font-medium text-emerald-700">
                       {line.promotionLabel}

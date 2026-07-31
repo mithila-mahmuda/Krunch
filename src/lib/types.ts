@@ -33,8 +33,48 @@ export interface OrderLine {
   unitPrice: number;
   quantity: number;
   note?: string;
+  /** Staff-entered discount; survives promotion recalculation. */
+  manualDiscountAmount: number;
+  /** Combined manual + promo discount used for totals. */
   discountAmount: number;
   promotionLabel?: string;
+}
+
+export interface HeldOrder {
+  id: string;
+  number: string;
+  lines: OrderLine[];
+  diningOption: DiningOption;
+  serviceEnabled: boolean;
+  customerId: string | null;
+  customerName: string | null;
+  tableId: string | null;
+  tableLabel: string | null;
+  heldAt: string;
+  total: number;
+}
+
+export interface CompletedOrder {
+  id: string;
+  number: string;
+  lines: OrderLine[];
+  diningOption: DiningOption;
+  serviceEnabled: boolean;
+  customerId: string | null;
+  customerName: string | null;
+  tableId: string | null;
+  tableLabel: string | null;
+  paidAt: string;
+  total: number;
+  method: "cash" | "card";
+  receipt: string;
+  server: string;
+}
+
+export interface TenderResult {
+  method: "cash" | "card";
+  amountTendered: number;
+  change: number;
 }
 
 export interface OrderTotals {
