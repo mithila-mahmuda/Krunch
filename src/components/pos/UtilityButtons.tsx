@@ -1,6 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import {
+  Banknote,
+  CirclePlus,
+  Printer,
+  RefreshCw,
+  UtensilsCrossed,
+  Wallet,
+} from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import type { DiningOption } from "@/lib/types";
 import { PosDialog } from "@/components/pos/PosDialog";
@@ -43,9 +51,15 @@ export function UtilityButtons() {
     setDiningOption(next);
   };
 
-  const buttons = [
+  const buttons: {
+    label: string;
+    icon: ReactNode;
+    onClick: () => void;
+    accent?: boolean;
+  }[] = [
     {
       label: "Misc Product",
+      icon: <CirclePlus className="h-4 w-4" strokeWidth={1.75} />,
       onClick: () => {
         setError("");
         setMiscName("");
@@ -55,6 +69,7 @@ export function UtilityButtons() {
     },
     {
       label: "Print",
+      icon: <Printer className="h-4 w-4" strokeWidth={1.75} />,
       onClick: () => {
         const result = printReceipt();
         if (!result.ok) {
@@ -70,10 +85,12 @@ export function UtilityButtons() {
     },
     {
       label: "No Sale",
+      icon: <Banknote className="h-4 w-4" strokeWidth={1.75} />,
       onClick: () => openCashDrawer("No sale"),
     },
     {
       label: "Petty Cash",
+      icon: <Wallet className="h-4 w-4" strokeWidth={1.75} />,
       onClick: () => {
         setError("");
         setPettyAmount("");
@@ -83,6 +100,7 @@ export function UtilityButtons() {
     },
     {
       label: "Adjust Float",
+      icon: <RefreshCw className="h-4 w-4" strokeWidth={1.75} />,
       onClick: () => {
         setError("");
         setFloatValue(String(floatAmount));
@@ -91,6 +109,7 @@ export function UtilityButtons() {
     },
     {
       label: `Dining Option\n${diningLabels[diningOption]}`,
+      icon: <UtensilsCrossed className="h-4 w-4" strokeWidth={1.75} />,
       onClick: cycleDining,
       accent: true,
     },
@@ -98,19 +117,20 @@ export function UtilityButtons() {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-1.5 border-t border-slate-200 px-2 py-2 min-[400px]:grid-cols-3">
+      <div className="grid grid-cols-3 gap-1 border-t border-slate-200 bg-slate-50 px-1.5 py-1.5">
         {buttons.map((button) => (
           <button
             key={button.label}
             type="button"
             onClick={button.onClick}
-            className={`min-h-11 rounded-md border px-1.5 py-1.5 text-[10px] font-bold uppercase leading-tight tracking-wide whitespace-pre-line transition active:scale-[0.98] sm:min-h-[44px] ${
+            className={`flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-md border px-1 py-1 text-[9px] font-bold uppercase leading-tight tracking-wide whitespace-pre-line transition active:scale-[0.98] ${
               button.accent
-                ? "border-[var(--pos-accent)] bg-[var(--pos-accent-soft)] text-[var(--pos-accent)]"
-                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                ? "border-[var(--pos-selected)] bg-white text-[var(--pos-selected-deep)]"
+                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
             }`}
           >
-            {button.label}
+            {button.icon}
+            <span>{button.label}</span>
           </button>
         ))}
       </div>

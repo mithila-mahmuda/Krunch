@@ -77,6 +77,8 @@ export function PosHeader() {
           onClick={() => setSearchOpen(true)}
           className="flex h-10 w-10 items-center justify-center rounded-md transition hover:bg-white/10 active:scale-95"
           aria-label="Search products"
+          aria-keyshortcuts="/ Control+K Meta+K"
+          title="Search products (/ or Ctrl+K)"
         >
           <Search className="h-5 w-5" />
         </button>

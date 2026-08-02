@@ -2,19 +2,21 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
   Boxes,
   ClipboardList,
   CookingPot,
   LayoutGrid,
+  LogOut,
   Package,
   Settings,
   Users,
   UtensilsCrossed,
   X,
 } from "lucide-react";
+import { useAuthStore } from "@/store/auth-store";
 import { usePosStore } from "@/store/pos-store";
 
 const links = [
@@ -30,8 +32,11 @@ const links = [
 ];
 
 export function NavDrawer() {
+  const router = useRouter();
   const open = usePosStore((state) => state.navOpen);
   const setNavOpen = usePosStore((state) => state.setNavOpen);
+  const user = useAuthStore((state) => state.user);
+  const signOut = useAuthStore((state) => state.signOut);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -50,6 +55,12 @@ export function NavDrawer() {
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [open, setNavOpen]);
+
+  function handleSignOut() {
+    setNavOpen(false);
+    signOut();
+    router.replace("/login");
+  }
 
   if (!open) return null;
 
@@ -101,6 +112,23 @@ export function NavDrawer() {
             );
           })}
         </nav>
+
+        <div className="shrink-0 border-t border-white/10 p-3">
+          <p className="truncate px-3 text-xs text-white/65">
+            Signed in as{" "}
+            <span className="font-semibold text-white/90">
+              {user?.name ?? "Staff"}
+            </span>
+          </p>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="mt-2 flex min-h-12 w-full items-center gap-3 rounded-md px-3 py-3 text-sm font-semibold text-white/90 transition hover:bg-white/10"
+          >
+            <LogOut className="h-5 w-5 shrink-0" />
+            Sign out
+          </button>
+        </div>
       </aside>
     </div>
   );

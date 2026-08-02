@@ -42,12 +42,12 @@ export function ActionButtons() {
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-1.5 border-t border-slate-200 p-2">
+      <div className="grid grid-cols-3 gap-1 border-t border-slate-200 p-1.5">
         <button
           type="button"
           disabled={!hasItems}
           onClick={() => setConfirmClear(true)}
-          className="min-h-12 rounded-md bg-[var(--action-delete)] text-xs font-bold uppercase tracking-wide text-white transition hover:brightness-110 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-[52px] sm:text-sm"
+          className="min-h-10 rounded-md bg-[var(--action-delete)] text-[11px] font-bold uppercase tracking-wide text-white transition hover:brightness-110 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
           Delete
         </button>
@@ -58,7 +58,7 @@ export function ActionButtons() {
             const result = holdOrder();
             if (!result.ok) setStatusMessage(result.error);
           }}
-          className="min-h-12 rounded-md bg-[var(--action-order)] text-xs font-bold uppercase leading-tight tracking-wide text-white transition hover:brightness-110 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-[52px] sm:text-sm"
+          className="min-h-10 rounded-md bg-[var(--action-order)] text-[11px] font-bold uppercase leading-tight tracking-wide text-white transition hover:brightness-110 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
           Order
           <br />
@@ -68,7 +68,7 @@ export function ActionButtons() {
           type="button"
           disabled={!hasItems}
           onClick={openPay}
-          className="min-h-12 rounded-md bg-[var(--action-pay)] text-xs font-bold uppercase tracking-wide text-white transition hover:brightness-110 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-[52px] sm:text-sm"
+          className="min-h-10 rounded-md bg-[var(--action-pay)] text-[11px] font-bold uppercase tracking-wide text-white transition hover:brightness-110 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
           Pay
         </button>

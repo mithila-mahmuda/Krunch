@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { Minus, Plus, StickyNote, Tag, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Minus, Pencil, Plus, Tag, X } from "lucide-react";
 import { formatMoney } from "@/lib/format";
+import type { OrderLine } from "@/lib/types";
 import { PosDialog } from "@/components/pos/PosDialog";
 import { usePosStore } from "@/store/pos-store";
 
+/** Shared with OrderLineList so qty digits line up (near prices, not row center). */
+export const orderLineGrid =
+  "grid w-full grid-cols-[minmax(0,1fr)_2.5rem_4.25rem_4.25rem] items-start gap-x-2";
+
 type DiscountMode = "amount" | "percent";
 
-export function ItemControls() {
-  const selectedLineId = usePosStore((state) => state.selectedLineId);
-  const lines = usePosStore((state) => state.lines);
+export function SelectedLineToolbar({ line }: { line: OrderLine }) {
   const updateQuantity = usePosStore((state) => state.updateQuantity);
   const removeLine = usePosStore((state) => state.removeLine);
   const setLineNote = usePosStore((state) => state.setLineNote);
@@ -22,31 +25,25 @@ export function ItemControls() {
   const [discountMode, setDiscountMode] = useState<DiscountMode>("amount");
   const [discountValue, setDiscountValue] = useState("");
 
-  const selectedLine = lines.find((line) => line.id === selectedLineId);
-
-  if (!selectedLine) {
-    return (
-      <div className="h-12 shrink-0 border-t border-slate-200 bg-slate-50 sm:h-14" />
-    );
-  }
-
-  const selected = selectedLine;
-  const lineTotal = selected.unitPrice * selected.quantity;
+  const lineTotal = line.unitPrice * line.quantity;
   const maxDiscount = lineTotal;
 
   const previewAmount = (() => {
     const value = Number.parseFloat(discountValue);
     if (Number.isNaN(value) || value < 0) return 0;
     if (discountMode === "percent") {
-      return Math.min(lineTotal, Math.round(lineTotal * (value / 100) * 100) / 100);
+      return Math.min(
+        lineTotal,
+        Math.round(lineTotal * (value / 100) * 100) / 100,
+      );
     }
     return Math.min(lineTotal, value);
   })();
 
   function openDiscount() {
-    if (selected.manualDiscountAmount > 0 && lineTotal > 0) {
+    if (line.manualDiscountAmount > 0 && lineTotal > 0) {
       const asPercent =
-        Math.round((selected.manualDiscountAmount / lineTotal) * 1000) / 10;
+        Math.round((line.manualDiscountAmount / lineTotal) * 1000) / 10;
       setDiscountMode("percent");
       setDiscountValue(String(asPercent));
     } else {
@@ -62,93 +59,85 @@ export function ItemControls() {
 
     if (discountMode === "percent") {
       const percent = Math.min(100, value);
-      const amount =
-        Math.round(lineTotal * (percent / 100) * 100) / 100;
-      applyLineDiscount(selected.id, amount, {
+      const amount = Math.round(lineTotal * (percent / 100) * 100) / 100;
+      applyLineDiscount(line.id, amount, {
         mode: "percent",
         percent,
       });
     } else {
-      applyLineDiscount(selected.id, value, { mode: "amount" });
+      applyLineDiscount(line.id, value, { mode: "amount" });
     }
     setDiscountOpen(false);
   }
 
   return (
     <>
-      <div className="flex h-12 shrink-0 items-center gap-1.5 border-t border-slate-200 bg-slate-50 px-2 sm:h-14 sm:gap-2 sm:px-3">
-        <button
-          type="button"
-          onClick={() => {
-            setNoteValue(selected.note ?? "");
-            setNoteOpen(true);
-          }}
-          className={`flex h-10 w-10 items-center justify-center rounded-md border transition active:scale-95 ${
-            selected.note
-              ? "border-[var(--pos-accent)] bg-[var(--pos-accent-soft)] text-[var(--pos-accent)]"
-              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-          }`}
-          aria-label="Add note"
-          title="Note"
-        >
-          <StickyNote className="h-5 w-5" />
-        </button>
-
-        <button
-          type="button"
-          onClick={openDiscount}
-          className={`flex h-10 w-10 items-center justify-center rounded-md border transition active:scale-95 ${
-            selected.manualDiscountAmount > 0
-              ? "border-[var(--pos-accent)] bg-[var(--pos-accent-soft)] text-[var(--pos-accent)]"
-              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-          }`}
-          aria-label="Apply discount"
-          title="Discount"
-        >
-          <Tag className="h-5 w-5" />
-        </button>
-
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => updateQuantity(selected.id, -1)}
-            className="flex h-10 w-10 items-center justify-center rounded-md bg-[var(--pos-accent)] text-white transition hover:brightness-110 active:scale-95"
-            aria-label="Decrease quantity"
+      <div className={`${orderLineGrid} items-end px-3 pb-2.5 pt-1`}>
+        <div className="flex items-end justify-start gap-1">
+          <ToolbarAction
+            label="Note"
+            active={Boolean(line.note)}
+            onClick={() => {
+              setNoteValue(line.note ?? "");
+              setNoteOpen(true);
+            }}
           >
-            <Minus className="h-5 w-5" />
-          </button>
-          <span className="w-8 text-center text-lg font-bold text-slate-900">
-            {selected.quantity}
+            <Pencil className="h-4 w-4" strokeWidth={2.25} />
+          </ToolbarAction>
+
+          <ToolbarAction
+            label="Discount"
+            active={line.manualDiscountAmount > 0}
+            onClick={openDiscount}
+          >
+            <Tag className="h-4 w-4" strokeWidth={2.25} />
+          </ToolbarAction>
+        </div>
+
+        <div className="z-10 flex w-max justify-self-center flex-col items-center gap-1">
+          <div className="flex items-center justify-center gap-1">
+            <button
+              type="button"
+              onClick={() => updateQuantity(line.id, -1)}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--pos-selected-deep)] text-white transition hover:bg-white hover:text-[var(--pos-selected)] active:scale-95"
+              aria-label="Decrease quantity"
+            >
+              <Minus className="h-4 w-4" strokeWidth={2.5} />
+            </button>
+            <span className="flex h-8 w-8 items-center justify-center rounded bg-[var(--pos-selected-deep)] text-base font-bold text-white">
+              {line.quantity}
+            </span>
+            <button
+              type="button"
+              onClick={() => updateQuantity(line.id, 1)}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--pos-selected-deep)] text-white transition hover:bg-white hover:text-[var(--pos-selected)] active:scale-95"
+              aria-label="Increase quantity"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.5} />
+            </button>
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wide text-white/95">
+            Quantity
           </span>
-          <button
-            type="button"
-            onClick={() => updateQuantity(selected.id, 1)}
-            className="flex h-10 w-10 items-center justify-center rounded-md bg-[var(--pos-accent)] text-white transition hover:brightness-110 active:scale-95"
-            aria-label="Increase quantity"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => removeLine(selected.id)}
-            className="flex h-10 w-10 items-center justify-center rounded-md bg-[var(--action-delete)] text-white transition hover:brightness-110 active:scale-95"
-            aria-label="Remove item"
-          >
-            <X className="h-5 w-5" />
-          </button>
+        </div>
+
+        <div className="col-span-2 flex items-end justify-end">
+          <ToolbarAction label="Delete" onClick={() => removeLine(line.id)}>
+            <X className="h-4 w-4" strokeWidth={2.5} />
+          </ToolbarAction>
         </div>
       </div>
 
       <PosDialog
         open={noteOpen}
-        title={`Note · ${selected.name}`}
+        title={`Note · ${line.name}`}
         onClose={() => setNoteOpen(false)}
         footer={
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => {
-                setLineNote(selected.id, "");
+                setLineNote(line.id, "");
                 setNoteOpen(false);
               }}
               className="min-h-11 rounded-md border border-slate-300 text-sm font-semibold hover:bg-slate-50"
@@ -158,7 +147,7 @@ export function ItemControls() {
             <button
               type="button"
               onClick={() => {
-                setLineNote(selected.id, noteValue);
+                setLineNote(line.id, noteValue);
                 setNoteOpen(false);
               }}
               className="min-h-11 rounded-md bg-[var(--pos-header)] text-sm font-semibold text-white hover:brightness-110"
@@ -183,14 +172,14 @@ export function ItemControls() {
 
       <PosDialog
         open={discountOpen}
-        title={`Discount · ${selected.name}`}
+        title={`Discount · ${line.name}`}
         onClose={() => setDiscountOpen(false)}
         footer={
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => {
-                applyLineDiscount(selected.id, 0);
+                applyLineDiscount(line.id, 0);
                 setDiscountOpen(false);
               }}
               className="min-h-11 rounded-md border border-slate-300 text-sm font-semibold hover:bg-slate-50"
@@ -290,5 +279,39 @@ export function ItemControls() {
         ) : null}
       </PosDialog>
     </>
+  );
+}
+
+function ToolbarAction({
+  label,
+  children,
+  onClick,
+  active = false,
+}: {
+  label: string;
+  children: ReactNode;
+  onClick: () => void;
+  active?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-12 flex-col items-center gap-1 text-white transition active:scale-95"
+      aria-label={label}
+    >
+      <span
+        className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
+          active
+            ? "bg-white text-[var(--pos-selected)]"
+            : "bg-[var(--pos-selected-deep)] text-white group-hover:bg-white group-hover:text-[var(--pos-selected)]"
+        }`}
+      >
+        {children}
+      </span>
+      <span className="text-[10px] font-bold uppercase tracking-wide">
+        {label}
+      </span>
+    </button>
   );
 }

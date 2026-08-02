@@ -2,10 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import { formatMoney } from "@/lib/format";
+import {
+  orderLineGrid,
+  SelectedLineToolbar,
+} from "@/components/pos/ItemControls";
 import { usePosStore } from "@/store/pos-store";
-
-const rowGrid =
-  "grid w-full grid-cols-[minmax(0,1fr)_2.25rem_minmax(3.25rem,auto)] gap-1 @[340px]:grid-cols-[minmax(0,1fr)_2.5rem_4.5rem_4.5rem]";
 
 export function OrderLineList() {
   const lines = usePosStore((state) => state.lines);
@@ -19,10 +20,10 @@ export function OrderLineList() {
 
   if (lines.length === 0) {
     return (
-      <div className="flex min-h-0 flex-1 items-center justify-center px-4 text-center sm:px-6">
+      <div className="flex min-h-0 flex-1 items-center justify-center px-4 text-center">
         <div>
-          <p className="text-base font-semibold text-slate-700">No items yet</p>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="text-sm font-semibold text-slate-700">No items yet</p>
+          <p className="mt-1 text-xs text-slate-500">
             Tap a category, then add products to start an order.
           </p>
         </div>
@@ -32,73 +33,90 @@ export function OrderLineList() {
 
   return (
     <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
-      <div
-        className={`sticky top-0 z-10 ${rowGrid} border-b border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-slate-500`}
-      >
-        <span>Item</span>
-        <span className="text-center">Qty</span>
-        <span className="hidden text-right @[340px]:block">Price</span>
-        <span className="text-right">Total</span>
-      </div>
-
       <ul>
         {lines.map((line) => {
           const selected = line.id === selectedLineId;
-          const lineTotal = line.unitPrice * line.quantity - line.discountAmount;
+          const gross = line.unitPrice * line.quantity;
+          const discountLabel =
+            line.promotionLabel ||
+            (line.manualDiscountAmount > 0 ? "Discount" : null);
+          const discountAmount =
+            line.discountAmount > 0 ? line.discountAmount : 0;
 
           return (
             <li
               key={line.id}
               ref={selected ? selectedRowRef : undefined}
+              className={
+                selected
+                  ? "bg-[var(--pos-selected)] text-white"
+                  : "border-b border-slate-100 bg-white text-slate-900"
+              }
             >
               <button
                 type="button"
-                onClick={() => selectLine(line.id)}
-                className={`${rowGrid} px-3 py-2.5 text-left text-sm transition ${
-                  selected
-                    ? "bg-[var(--pos-selected)]"
-                    : "hover:bg-slate-50"
+                onClick={() => selectLine(selected ? null : line.id)}
+                className={`${orderLineGrid} px-3 py-2 text-left text-sm leading-snug transition ${
+                  selected ? "text-white" : "hover:bg-slate-50"
                 }`}
               >
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-slate-900">
+                  <p
+                    className={`truncate font-bold ${
+                      selected ? "text-white" : "text-slate-900"
+                    }`}
+                  >
                     {line.name}
                   </p>
-                  {line.note && (
-                    <p className="truncate text-xs italic text-slate-500">
+                  {line.note ? (
+                    <p
+                      className={`truncate text-xs italic ${
+                        selected ? "text-white/85" : "text-slate-500"
+                      }`}
+                    >
                       Note: {line.note}
                     </p>
-                  )}
-                  {line.manualDiscountAmount > 0 && (
-                    <p className="truncate text-xs font-medium text-rose-600">
-                      Discount −{formatMoney(line.manualDiscountAmount)}
-                    </p>
-                  )}
-                  {line.promotionLabel && (
-                    <p className="truncate text-xs font-medium text-emerald-700">
-                      {line.promotionLabel}
-                    </p>
-                  )}
+                  ) : null}
                 </div>
-                <span className="text-center font-medium text-slate-800">
+                <span
+                  className={`text-center font-medium ${
+                    selected ? "text-white" : "text-slate-800"
+                  }`}
+                >
                   {line.quantity}
                 </span>
-                <span className="hidden text-right text-slate-700 @[340px]:block">
+                <span
+                  className={`text-right ${
+                    selected ? "text-white/95" : "text-slate-700"
+                  }`}
+                >
                   {formatMoney(line.unitPrice)}
                 </span>
-                <span className="text-right font-semibold text-slate-900">
-                  {line.discountAmount > 0 ? (
-                    <span className="flex flex-col items-end leading-tight">
-                      <span className="text-xs text-slate-400 line-through">
-                        {formatMoney(line.unitPrice * line.quantity)}
-                      </span>
-                      <span>{formatMoney(lineTotal)}</span>
-                    </span>
-                  ) : (
-                    formatMoney(lineTotal)
-                  )}
+                <span
+                  className={`text-right font-semibold ${
+                    selected ? "text-white" : "text-slate-900"
+                  }`}
+                >
+                  {formatMoney(gross)}
                 </span>
               </button>
+
+              {discountLabel ? (
+                <div
+                  className={`flex items-start justify-between gap-2 px-3 pb-1.5 text-xs ${
+                    selected ? "text-white/85" : "text-slate-500"
+                  }`}
+                >
+                  <p className="min-w-0 flex-1 truncate">{discountLabel}</p>
+                  {discountAmount > 0 ? (
+                    <p className="shrink-0 font-medium">
+                      −{formatMoney(discountAmount)}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {selected ? <SelectedLineToolbar line={line} /> : null}
             </li>
           );
         })}

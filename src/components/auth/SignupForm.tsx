@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 
+const fieldClassName =
+  "min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[var(--pos-accent)] focus:ring-2 focus:ring-[var(--pos-accent)]/25 disabled:opacity-60 user-invalid:border-red-500";
+
 export function SignupForm() {
   const router = useRouter();
   const signUp = useAuthStore((state) => state.signUp);
@@ -64,107 +67,113 @@ export function SignupForm() {
     <form
       method="post"
       onSubmit={handleSubmit}
-      className="login-form flex w-full flex-col gap-4"
+      className="login-form flex w-full flex-col gap-3"
       noValidate
     >
-      <div className="flex flex-col gap-2">
-        <label
-          htmlFor={restaurantId}
-          className="text-sm font-semibold text-slate-700"
-        >
-          Restaurant name
-        </label>
-        <input
-          id={restaurantId}
-          name="restaurantName"
-          type="text"
-          autoComplete="organization"
-          enterKeyHint="next"
-          required
-          value={restaurantName}
-          disabled={isSubmitting}
-          onChange={(event) => {
-            setRestaurantName(event.target.value);
-            clearErrorOnChange();
-          }}
-          className="min-h-12 rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 outline-none transition focus:border-[var(--pos-accent)] focus:ring-2 focus:ring-[var(--pos-accent)]/25 disabled:opacity-60 user-invalid:border-red-500"
-          placeholder="Harbor Café"
-        />
-      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor={restaurantId}
+            className="text-sm font-semibold text-slate-700"
+          >
+            Restaurant name
+          </label>
+          <input
+            id={restaurantId}
+            name="restaurantName"
+            type="text"
+            autoComplete="organization"
+            enterKeyHint="next"
+            required
+            value={restaurantName}
+            disabled={isSubmitting}
+            onChange={(event) => {
+              setRestaurantName(event.target.value);
+              clearErrorOnChange();
+            }}
+            className={fieldClassName}
+            placeholder="Harbor Café"
+          />
+        </div>
 
-      <div className="flex flex-col gap-2">
-        <label htmlFor={ownerId} className="text-sm font-semibold text-slate-700">
-          Your name
-        </label>
-        <input
-          id={ownerId}
-          name="ownerName"
-          type="text"
-          autoComplete="name"
-          enterKeyHint="next"
-          required
-          value={ownerName}
-          disabled={isSubmitting}
-          onChange={(event) => {
-            setOwnerName(event.target.value);
-            clearErrorOnChange();
-          }}
-          className="min-h-12 rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 outline-none transition focus:border-[var(--pos-accent)] focus:ring-2 focus:ring-[var(--pos-accent)]/25 disabled:opacity-60 user-invalid:border-red-500"
-          placeholder="Alex Rivera"
-        />
-      </div>
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor={ownerId}
+            className="text-sm font-semibold text-slate-700"
+          >
+            Your name
+          </label>
+          <input
+            id={ownerId}
+            name="ownerName"
+            type="text"
+            autoComplete="name"
+            enterKeyHint="next"
+            required
+            value={ownerName}
+            disabled={isSubmitting}
+            onChange={(event) => {
+              setOwnerName(event.target.value);
+              clearErrorOnChange();
+            }}
+            className={fieldClassName}
+            placeholder="Alex Rivera"
+          />
+        </div>
 
-      <div className="flex flex-col gap-2">
-        <label htmlFor={emailId} className="text-sm font-semibold text-slate-700">
-          Work email
-        </label>
-        <input
-          id={emailId}
-          name="email"
-          type="email"
-          autoComplete="email"
-          inputMode="email"
-          enterKeyHint="next"
-          required
-          value={email}
-          disabled={isSubmitting}
-          onChange={(event) => {
-            setEmail(event.target.value);
-            clearErrorOnChange();
-          }}
-          className="min-h-12 rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 outline-none transition focus:border-[var(--pos-accent)] focus:ring-2 focus:ring-[var(--pos-accent)]/25 disabled:opacity-60 user-invalid:border-red-500"
-          placeholder="you@restaurant.com"
-        />
-      </div>
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor={emailId}
+            className="text-sm font-semibold text-slate-700"
+          >
+            Work email
+          </label>
+          <input
+            id={emailId}
+            name="email"
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            enterKeyHint="next"
+            required
+            value={email}
+            disabled={isSubmitting}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              clearErrorOnChange();
+            }}
+            className={fieldClassName}
+            placeholder="you@restaurant.com"
+          />
+        </div>
 
-      <div className="flex flex-col gap-2">
-        <label
-          htmlFor={contactId}
-          className="text-sm font-semibold text-slate-700"
-        >
-          Contact number
-        </label>
-        <input
-          id={contactId}
-          name="contactNumber"
-          type="tel"
-          autoComplete="tel"
-          inputMode="tel"
-          enterKeyHint="next"
-          required
-          value={contactNumber}
-          disabled={isSubmitting}
-          onChange={(event) => {
-            setContactNumber(event.target.value);
-            clearErrorOnChange();
-          }}
-          className="min-h-12 rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 outline-none transition focus:border-[var(--pos-accent)] focus:ring-2 focus:ring-[var(--pos-accent)]/25 disabled:opacity-60 user-invalid:border-red-500"
-          placeholder="+1 555 123 4567"
-        />
-      </div>
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor={contactId}
+            className="text-sm font-semibold text-slate-700"
+          >
+            Contact number
+          </label>
+          <input
+            id={contactId}
+            name="contactNumber"
+            type="tel"
+            autoComplete="tel"
+            inputMode="tel"
+            enterKeyHint="next"
+            required
+            value={contactNumber}
+            disabled={isSubmitting}
+            onChange={(event) => {
+              setContactNumber(event.target.value);
+              clearErrorOnChange();
+            }}
+            className={fieldClassName}
+            placeholder="+1 555 123 4567"
+          />
+        </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <label
             htmlFor={passwordId}
             className="text-sm font-semibold text-slate-700"
@@ -186,27 +195,27 @@ export function SignupForm() {
                 setPassword(event.target.value);
                 clearErrorOnChange();
               }}
-              className="min-h-12 w-full rounded-lg border border-slate-300 bg-white px-3 pr-12 text-base text-slate-900 outline-none transition focus:border-[var(--pos-accent)] focus:ring-2 focus:ring-[var(--pos-accent)]/25 disabled:opacity-60 user-invalid:border-red-500"
+              className={`${fieldClassName} pr-11`}
               placeholder="Min. 6 characters"
             />
             <button
               type="button"
               onClick={() => setShowPassword((value) => !value)}
               disabled={isSubmitting}
-              className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-500 transition hover:text-slate-800 disabled:opacity-60"
+              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 transition hover:text-slate-800 disabled:opacity-60"
               aria-label={showPassword ? "Hide password" : "Show password"}
               aria-pressed={showPassword}
             >
               {showPassword ? (
-                <EyeOff className="h-5 w-5" />
+                <EyeOff className="h-4 w-4" />
               ) : (
-                <Eye className="h-5 w-5" />
+                <Eye className="h-4 w-4" />
               )}
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <label
             htmlFor={confirmId}
             className="text-sm font-semibold text-slate-700"
@@ -227,7 +236,7 @@ export function SignupForm() {
               setConfirmPassword(event.target.value);
               clearErrorOnChange();
             }}
-            className="min-h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 outline-none transition focus:border-[var(--pos-accent)] focus:ring-2 focus:ring-[var(--pos-accent)]/25 disabled:opacity-60 user-invalid:border-red-500"
+            className={fieldClassName}
             placeholder="Repeat password"
           />
         </div>
@@ -246,11 +255,11 @@ export function SignupForm() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="mt-1 flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[var(--action-pay)] px-4 text-base font-bold uppercase tracking-wide text-white transition hover:brightness-110 enabled:active:scale-[0.99] disabled:cursor-wait disabled:opacity-80"
+        className="mt-0.5 flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[var(--action-pay)] px-4 text-sm font-bold uppercase tracking-wide text-white transition hover:brightness-110 enabled:active:scale-[0.99] disabled:cursor-wait disabled:opacity-80"
       >
         {isSubmitting ? (
           <>
-            <LoaderCircle className="h-5 w-5 animate-spin" />
+            <LoaderCircle className="h-4 w-4 animate-spin" />
             Creating account…
           </>
         ) : (

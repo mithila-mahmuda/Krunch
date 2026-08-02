@@ -22,7 +22,7 @@ export function LoginScreen() {
   }, [hydrated, user, router]);
 
   return (
-    <div className="login-shell relative flex min-h-dvh overflow-x-hidden overflow-y-auto">
+    <div className="login-shell relative flex h-dvh overflow-x-hidden overflow-y-auto">
       <div className="login-atmosphere" aria-hidden="true" />
       <div className="login-grain" aria-hidden="true" />
 

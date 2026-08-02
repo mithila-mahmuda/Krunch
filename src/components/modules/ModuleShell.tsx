@@ -22,37 +22,36 @@ export function ModuleShell({
   const setNavOpen = usePosStore((state) => state.setNavOpen);
 
   return (
-    <div className="min-h-dvh bg-[var(--module-bg)] text-slate-900">
-      <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur">
-        <div className="flex flex-wrap items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4">
+    <div className="module-shell h-dvh overflow-y-auto overscroll-contain bg-[var(--module-bg)] text-slate-900">
+      <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur">
+        <div className="flex min-h-14 items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4">
           <button
             type="button"
             onClick={() => setNavOpen(true)}
-            className="inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-50"
+            aria-label="Menu"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-300 hover:bg-slate-50"
           >
             <Menu className="h-4 w-4" />
-            Menu
           </button>
           <Link
             href="/pos"
-            className="inline-flex min-h-10 items-center gap-2 rounded-md px-2 text-sm font-semibold text-[var(--pos-accent)] hover:bg-[var(--pos-accent-soft)]"
+            aria-label="Back to POS"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--pos-accent-soft)] text-[var(--pos-accent)] transition hover:bg-[var(--pos-accent)] hover:text-white active:scale-95"
           >
-            <ArrowLeft className="h-4 w-4 shrink-0" />
-            <span className="sm:hidden">POS</span>
-            <span className="hidden sm:inline">Back to POS</span>
+            <ArrowLeft className="h-4 w-4" />
           </Link>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate font-[family-name:var(--font-display)] text-lg font-bold tracking-tight sm:text-xl">
+          <div className="flex min-w-0 flex-1 flex-col justify-center">
+            <h1 className="truncate font-[family-name:var(--font-display)] text-lg leading-tight font-bold tracking-tight sm:text-xl">
               {title}
             </h1>
             {subtitle ? (
-              <p className="truncate text-xs text-slate-500 sm:text-sm">
+              <p className="truncate text-xs leading-snug text-slate-500 sm:text-sm">
                 {subtitle}
               </p>
             ) : null}
           </div>
           {actions ? (
-            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
               {actions}
             </div>
           ) : null}

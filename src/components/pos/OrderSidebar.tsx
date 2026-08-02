@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ClipboardList,
-  LayoutGrid,
+  Monitor,
   Plus,
   Users,
   UtensilsCrossed,
@@ -16,7 +16,6 @@ import type { SidebarTab } from "@/lib/types";
 import { useCustomerStore } from "@/store/customer-store";
 import { usePosStore } from "@/store/pos-store";
 import { ActionButtons } from "@/components/pos/ActionButtons";
-import { ItemControls } from "@/components/pos/ItemControls";
 import { OrderLineList } from "@/components/pos/OrderLineList";
 import { OrderTotals } from "@/components/pos/OrderTotals";
 import { PosDialog } from "@/components/pos/PosDialog";
@@ -25,18 +24,12 @@ import { UtilityButtons } from "@/components/pos/UtilityButtons";
 const tabs: {
   id: SidebarTab;
   label: string;
-  shortLabel: string;
-  icon: typeof LayoutGrid;
+  icon: typeof Monitor;
 }[] = [
-  { id: "menu", label: "Menu", shortLabel: "Menu", icon: LayoutGrid },
-  { id: "customers", label: "Customers", shortLabel: "Guests", icon: Users },
-  { id: "orders", label: "Orders", shortLabel: "Orders", icon: ClipboardList },
-  {
-    id: "tables",
-    label: "Tabs & Tables",
-    shortLabel: "Tables",
-    icon: UtensilsCrossed,
-  },
+  { id: "menu", label: "Menu", icon: Monitor },
+  { id: "customers", label: "Customers", icon: Users },
+  { id: "orders", label: "Orders", icon: ClipboardList },
+  { id: "tables", label: "Tabs & Tables", icon: UtensilsCrossed },
 ];
 
 export function OrderSidebar() {
@@ -95,12 +88,12 @@ export function OrderSidebar() {
 
       <aside
         ref={asideRef}
-        className={`fixed inset-x-0 bottom-0 z-40 flex max-h-[min(92dvh,100%)] w-full flex-col rounded-t-2xl border border-slate-200 bg-white text-slate-900 shadow-2xl transition-transform duration-200 ease-out @container ${
+        className={`pos-light-scroll fixed inset-x-0 bottom-0 z-40 flex max-h-[min(92dvh,100%)] w-full flex-col rounded-t-2xl border border-slate-200 bg-white text-slate-900 shadow-2xl transition-transform duration-200 ease-out @container ${
           orderPanelOpen ? "translate-y-0" : "translate-y-full"
-        } lg:static lg:z-auto lg:h-full lg:max-h-none lg:w-[min(100%,420px)] lg:shrink-0 lg:translate-y-0 lg:rounded-none lg:border-0 lg:border-l lg:shadow-none`}
+        } lg:static lg:z-auto lg:h-full lg:max-h-none lg:w-[min(100%,400px)] lg:shrink-0 lg:translate-y-0 lg:rounded-none lg:border-0 lg:border-l lg:shadow-none`}
         aria-label="Order panel"
       >
-        <div className="shrink-0 border-b border-slate-200 px-3 pb-2.5 pt-2 lg:hidden">
+        <div className="shrink-0 border-b border-slate-200 px-3 pb-2 pt-2 lg:hidden">
           <div className="mb-2 flex justify-center">
             <span className="h-1 w-10 rounded-full bg-slate-300" />
           </div>
@@ -119,7 +112,7 @@ export function OrderSidebar() {
 
         <TicketContextBar />
 
-        <div className="grid shrink-0 grid-cols-4 border-b border-slate-200">
+        <div className="grid shrink-0 grid-cols-4 border-b border-slate-200 bg-white">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -128,15 +121,15 @@ export function OrderSidebar() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-semibold uppercase tracking-wide transition sm:text-[11px] ${
+                aria-label={tab.label}
+                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-bold uppercase tracking-wide transition ${
                   active
-                    ? "border-b-2 border-[var(--pos-accent)] text-[var(--pos-accent)]"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                    ? "border-b-2 border-[var(--pos-selected)] text-[var(--pos-selected-deep)]"
+                    : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
                 }`}
               >
-                <Icon className="h-5 w-5 shrink-0" />
-                <span className="truncate sm:hidden">{tab.shortLabel}</span>
-                <span className="hidden truncate sm:inline">{tab.label}</span>
+                <Icon className="h-5 w-5 shrink-0" strokeWidth={1.75} />
+                <span className="truncate">{tab.label}</span>
               </button>
             );
           })}
@@ -146,7 +139,6 @@ export function OrderSidebar() {
           <>
             <div className="flex min-h-0 flex-1 flex-col">
               <OrderLineList />
-              <ItemControls />
             </div>
             <div className="shrink-0 overflow-y-auto overscroll-contain pb-[max(0px,env(safe-area-inset-bottom))]">
               <OrderTotals />
@@ -174,7 +166,7 @@ function TicketContextBar() {
   if (!customerName && !tableLabel) return null;
 
   return (
-    <div className="shrink-0 border-b border-slate-100 bg-[var(--pos-accent-soft)] px-3 py-2 text-xs font-semibold text-[var(--pos-accent)]">
+    <div className="shrink-0 truncate border-b border-slate-100 bg-[var(--pos-accent-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--pos-accent)]">
       {[
         customerName ? `Guest: ${customerName}` : null,
         tableLabel ? `Table ${tableLabel}` : null,

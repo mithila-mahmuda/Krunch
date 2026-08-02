@@ -21,11 +21,10 @@ export function ProductGrid() {
         <button
           type="button"
           onClick={() => setActiveCategory(null)}
-          className="flex h-11 shrink-0 items-center gap-2 rounded-md bg-white/15 px-2.5 text-sm font-semibold text-white transition hover:bg-white/25 active:scale-95 sm:px-3"
+          aria-label="Back to categories"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white/25 text-white transition hover:bg-white hover:text-[var(--pos-accent)] active:scale-95"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span className="hidden sm:inline">Categories</span>
-          <span className="sm:hidden">Back</span>
         </button>
         <h2 className="min-w-0 truncate text-base font-bold uppercase tracking-wide text-white sm:text-lg">
           {category?.name}

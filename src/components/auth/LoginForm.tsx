@@ -42,7 +42,7 @@ export function LoginForm() {
   const errorId = useId();
 
   const [email, setEmail] = useState("kyle@krunch.app");
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState("till1234");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -214,13 +214,6 @@ export function LoginForm() {
           "Sign In"
         )}
       </button>
-
-      <p className="rounded-lg bg-slate-100 px-3 py-2 text-xs leading-relaxed text-slate-600">
-        Demo: <span className="font-semibold">kyle@krunch.app</span> /{" "}
-        <span className="font-semibold">till1234</span>
-        {" · "}
-        Google signs in as Kyle
-      </p>
 
       <p className="text-center text-sm text-slate-600">
         New restaurant?{" "}
