@@ -5,7 +5,7 @@ import { MenuManagerScreen } from "@/components/modules/MenuManagerScreen";
 
 export default function MenuPage() {
   return (
-    <RequireAuth>
+    <RequireAuth permission="access_menu">
       <MenuManagerScreen />
     </RequireAuth>
   );

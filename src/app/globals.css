@@ -1,16 +1,35 @@
 @import "tailwindcss";
 
+/* Match appearance.ts (`html.dark`) — not prefers-color-scheme alone. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f4f7fb;
   --foreground: #0f172a;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f9;
+  --surface-raised: #ffffff;
+  --divider: #e2e8f0;
+  --dialog-border: transparent;
+  --dialog-scrim: rgb(0 0 0 / 0.5);
+  --dialog-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.35);
 
   --pos-header: #163a63;
   --pos-menu: #2f6ea5;
   --pos-canvas: #1d4f7a;
   --pos-accent: #1f6feb;
-  --pos-accent-soft: #e8f1ff;
+  --pos-accent-soft: color-mix(in srgb, var(--pos-accent) 14%, white);
   --pos-selected: #00aeef;
   --pos-selected-deep: #0098d4;
+
+  /*
+   * Auto ink on brand fills — same trick as FN People Performance.
+   * OKLCH L ≥ ~0.71 → black; darker fills → white. Zero JS.
+   */
+  --pos-on-header: oklch(from var(--pos-header) round(1.21 - l) 0 0);
+  --pos-on-accent: oklch(from var(--pos-accent) round(1.21 - l) 0 0);
+  /* Darker chrome for header buttons + active nav */
+  --pos-header-deep: color-mix(in srgb, var(--pos-header) 72%, black);
 
   --cat-drinks: #2f9e44;
   --cat-food: #3b82c4;
@@ -32,6 +51,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-pos-on-header: var(--pos-on-header);
+  --color-pos-on-accent: var(--pos-on-accent);
   --font-sans: var(--font-body);
   --font-display: var(--font-display);
 }
@@ -71,6 +92,74 @@ body {
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Shared header controls — POS Till + module pages */
+.app-header-btn {
+  display: inline-flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  background: var(--pos-header-deep);
+  color: var(--pos-on-header);
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.app-header-btn:hover {
+  background: var(--pos-accent);
+  color: var(--pos-on-accent);
+}
+
+.app-header-btn:active {
+  transform: scale(0.95);
+}
+
+.app-header-btn--danger:hover {
+  background: var(--action-delete);
+  color: #fff;
+}
+
+.app-header-btn.is-danger {
+  background: var(--action-delete);
+  color: #fff;
+}
+
+.app-header-btn.is-danger:hover {
+  filter: brightness(1.1);
+  color: #fff;
+}
+
+.app-header-btn--label {
+  width: auto;
+  min-height: 2.5rem;
+  padding-inline: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Kitchen drag-and-drop column highlight (toggled via DOM during drag) */
+.kitchen-col-drop {
+  box-shadow:
+    0 0 0 2px var(--module-bg),
+    0 0 0 4px var(--pos-accent);
+}
+
+.kitchen-drop-slot {
+  display: none;
+}
+
+.kitchen-col-drop .kitchen-drop-slot {
+  display: block;
+}
+
+.kitchen-col-drop .empty-hint {
+  display: none;
 }
 
 img,
@@ -126,6 +215,12 @@ canvas {
 .module-shell {
   color-scheme: light;
   --scrollbar-thumb: rgb(100 116 139 / 0.5);
+}
+
+.dark .pos-shell .pos-light-scroll,
+.dark .module-shell {
+  color-scheme: dark;
+  --scrollbar-thumb: rgb(148 163 184 / 0.45);
 }
 
 .login-atmosphere {
@@ -214,4 +309,127 @@ canvas {
   .login-form > * {
     animation: none !important;
   }
+}
+
+/*
+ * Dark mode: flip canvases / text / soft neutrals.
+ * Brand, category, and action colors stay the same.
+ * Placed last so token overrides beat Tailwind defaults.
+ */
+html.dark {
+  color-scheme: dark;
+
+  --background: #0c1219;
+  --foreground: #e8eef6;
+  --surface: #151b24;
+  --surface-muted: #1a222d;
+  /* One step lighter than page surface — dialogs need a clear “lift” */
+  --surface-raised: #243041;
+  --divider: #2a3441;
+  --dialog-border: rgb(255 255 255 / 0.14);
+  --dialog-scrim: rgb(0 0 0 / 0.72);
+  --dialog-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.06),
+    0 28px 64px rgb(0 0 0 / 0.7);
+
+  --pos-accent-soft: color-mix(in srgb, var(--pos-accent) 22%, #0c1219);
+  --module-bg: #0e141b;
+
+  --scrollbar-thumb: rgb(148 163 184 / 0.45);
+
+  /* Invert Tailwind slate scale so existing utilities adapt automatically */
+  --color-slate-50: #151b24;
+  --color-slate-100: #1a222d;
+  --color-slate-200: #2a3441;
+  --color-slate-300: #3d4b5c;
+  --color-slate-400: #7c8a9a;
+  --color-slate-500: #94a3b8;
+  --color-slate-600: #a8b4c4;
+  --color-slate-700: #cbd5e1;
+  --color-slate-800: #e2e8f0;
+  --color-slate-900: #f1f5f9;
+  --color-slate-950: #f8fafc;
+
+  /*
+   * Soft status tints (50–300 bg/border + 700–950 text) → dark-readable.
+   * Keep mid solid fills (500/600) for badges and action buttons.
+   */
+  --color-rose-50: color-mix(in srgb, #e11d48 22%, #151b24);
+  --color-rose-100: color-mix(in srgb, #e11d48 28%, #151b24);
+  --color-rose-200: color-mix(in srgb, #e11d48 40%, #1a222d);
+  --color-rose-300: color-mix(in srgb, #e11d48 55%, #2a3441);
+  --color-rose-700: #fda4af;
+  --color-rose-800: #fecdd3;
+  --color-rose-900: #ffe4e6;
+
+  --color-amber-50: color-mix(in srgb, #f59e0b 20%, #151b24);
+  --color-amber-100: color-mix(in srgb, #f59e0b 26%, #151b24);
+  --color-amber-200: color-mix(in srgb, #f59e0b 38%, #1a222d);
+  --color-amber-300: color-mix(in srgb, #f59e0b 50%, #2a3441);
+  --color-amber-800: #fde68a;
+  --color-amber-900: #fef3c7;
+  --color-amber-950: #fffbeb;
+
+  --color-emerald-50: color-mix(in srgb, #10b981 20%, #151b24);
+  --color-emerald-100: color-mix(in srgb, #10b981 26%, #151b24);
+  --color-emerald-200: color-mix(in srgb, #10b981 38%, #1a222d);
+  --color-emerald-900: #a7f3d0;
+
+  --color-sky-50: color-mix(in srgb, #0ea5e9 20%, #151b24);
+  --color-sky-100: color-mix(in srgb, #0ea5e9 26%, #151b24);
+  --color-sky-200: color-mix(in srgb, #0ea5e9 38%, #1a222d);
+  --color-sky-300: color-mix(in srgb, #0ea5e9 50%, #2a3441);
+  --color-sky-800: #bae6fd;
+  --color-sky-900: #e0f2fe;
+
+  --color-red-50: color-mix(in srgb, #ef4444 20%, #151b24);
+  --color-red-200: color-mix(in srgb, #ef4444 38%, #1a222d);
+  --color-red-700: #fca5a5;
+}
+
+/* White panels → dark surfaces (never remap text-white / white/* / hover:bg-white) */
+html.dark .bg-white:not(.receipt-ticket) {
+  background-color: var(--surface);
+}
+
+html.dark .bg-white\/95 {
+  background-color: color-mix(in srgb, var(--surface) 95%, transparent);
+}
+
+/*
+ * Receipts always look like paper — dark mode must not invert them.
+ * Uses fixed light neutrals so remapped slate/surface tokens cannot leak in.
+ */
+.receipt-ticket {
+  color-scheme: light;
+  background-color: #ffffff !important;
+  color: #171717;
+  border-color: #d4d4d4;
+}
+
+.receipt-ticket .bg-neutral-300 {
+  background-color: #d4d4d4;
+}
+
+.receipt-ticket .bg-neutral-900 {
+  background-color: #171717;
+  color: #ffffff;
+}
+
+.receipt-ticket .text-neutral-800,
+.receipt-ticket .text-neutral-900,
+.receipt-ticket .text-slate-800 {
+  color: #171717;
+}
+
+/* Floating dialogs: raised surface + edge so they don’t melt into the page */
+.pos-dialog-backdrop {
+  background: var(--dialog-scrim);
+}
+
+.pos-dialog {
+  background: var(--surface-raised);
+  border: 1px solid var(--dialog-border);
+  box-shadow: var(--dialog-shadow);
+  color: var(--foreground);
 }

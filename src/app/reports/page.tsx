@@ -5,7 +5,7 @@ import { ReportsScreen } from "@/components/modules/ReportsScreen";
 
 export default function ReportsPage() {
   return (
-    <RequireAuth>
+    <RequireAuth permission="access_reports">
       <ReportsScreen />
     </RequireAuth>
   );

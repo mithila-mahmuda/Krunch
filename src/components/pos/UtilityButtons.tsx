@@ -9,20 +9,24 @@ import {
   UtensilsCrossed,
   Wallet,
 } from "lucide-react";
-import { formatMoney } from "@/lib/format";
+import {
+  activeCurrencySymbol,
+  diningOptionLabel,
+  formatMoney,
+} from "@/lib/format";
+import { can } from "@/lib/permissions";
+import { printReceiptText } from "@/lib/print-receipt";
 import type { DiningOption } from "@/lib/types";
 import { PosDialog } from "@/components/pos/PosDialog";
+import { ReceiptTicket } from "@/components/receipt/ReceiptTicket";
+import { useAuthStore } from "@/store/auth-store";
+import { useOpsStore } from "@/store/ops-store";
 import { usePosStore } from "@/store/pos-store";
-
-const diningLabels: Record<DiningOption, string> = {
-  eat_in: "Eat In",
-  takeaway: "Takeaway",
-  delivery: "Delivery",
-};
 
 const diningOrder: DiningOption[] = ["eat_in", "takeaway", "delivery"];
 
 export function UtilityButtons() {
+  const user = useAuthStore((state) => state.user);
   const diningOption = usePosStore((state) => state.diningOption);
   const setDiningOption = usePosStore((state) => state.setDiningOption);
   const addMiscProduct = usePosStore((state) => state.addMiscProduct);
@@ -30,12 +34,17 @@ export function UtilityButtons() {
   const openCashDrawer = usePosStore((state) => state.openCashDrawer);
   const recordPettyCash = usePosStore((state) => state.recordPettyCash);
   const adjustFloat = usePosStore((state) => state.adjustFloat);
-  const floatAmount = usePosStore((state) => state.floatAmount);
+  const setStatusMessage = usePosStore((state) => state.setStatusMessage);
+  const floatAmount = useOpsStore((state) => state.floatAmount);
   const lastReceipt = usePosStore((state) => state.lastReceipt);
+
+  const canOpenDrawer = can(user?.role, "open_drawer");
+  const canAdjustFloat = can(user?.role, "adjust_float");
 
   const [miscOpen, setMiscOpen] = useState(false);
   const [pettyOpen, setPettyOpen] = useState(false);
   const [floatOpen, setFloatOpen] = useState(false);
+  const [noSaleOpen, setNoSaleOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [receiptText, setReceiptText] = useState("");
   const [miscName, setMiscName] = useState("");
@@ -78,7 +87,11 @@ export function UtilityButtons() {
           setReceiptText("");
           return;
         }
-        setError("");
+        setError(
+          result.printed
+            ? ""
+            : "Pop-up blocked — preview below, then tap Print again.",
+        );
         setReceiptText(result.receipt);
         setReceiptOpen(true);
       },
@@ -86,12 +99,23 @@ export function UtilityButtons() {
     {
       label: "No Sale",
       icon: <Banknote className="h-4 w-4" strokeWidth={1.75} />,
-      onClick: () => openCashDrawer("No sale"),
+      onClick: () => {
+        if (!canOpenDrawer) {
+          setStatusMessage("No sale requires cashier or manager access");
+          return;
+        }
+        setError("");
+        setNoSaleOpen(true);
+      },
     },
     {
       label: "Petty Cash",
       icon: <Wallet className="h-4 w-4" strokeWidth={1.75} />,
       onClick: () => {
+        if (!canAdjustFloat) {
+          setStatusMessage("Petty cash requires cashier or manager access");
+          return;
+        }
         setError("");
         setPettyAmount("");
         setPettyReason("");
@@ -102,13 +126,17 @@ export function UtilityButtons() {
       label: "Adjust Float",
       icon: <RefreshCw className="h-4 w-4" strokeWidth={1.75} />,
       onClick: () => {
+        if (!canAdjustFloat) {
+          setStatusMessage("Adjust float requires cashier or manager access");
+          return;
+        }
         setError("");
         setFloatValue(String(floatAmount));
         setFloatOpen(true);
       },
     },
     {
-      label: `Dining Option\n${diningLabels[diningOption]}`,
+      label: `Dining Option\n${diningOptionLabel(diningOption)}`,
       icon: <UtensilsCrossed className="h-4 w-4" strokeWidth={1.75} />,
       onClick: cycleDining,
       accent: true,
@@ -125,7 +153,7 @@ export function UtilityButtons() {
             onClick={button.onClick}
             className={`flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-md border px-1 py-1 text-[9px] font-bold uppercase leading-tight tracking-wide whitespace-pre-line transition active:scale-[0.98] ${
               button.accent
-                ? "border-[var(--pos-selected)] bg-white text-[var(--pos-selected-deep)]"
+                ? "border-[var(--pos-header)] bg-[var(--pos-header)]/10 text-[var(--pos-header)] dark:text-white"
                 : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
             }`}
           >
@@ -151,7 +179,7 @@ export function UtilityButtons() {
               addMiscProduct(miscName, price);
               setMiscOpen(false);
             }}
-            className="min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-white"
+            className="min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-pos-on-header"
           >
             Add to ticket
           </button>
@@ -168,7 +196,7 @@ export function UtilityButtons() {
             />
           </label>
           <label className="block text-sm font-semibold">
-            Price (£)
+            Price ({activeCurrencySymbol()})
             <input
               type="number"
               min={0.01}
@@ -180,6 +208,43 @@ export function UtilityButtons() {
           </label>
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
         </div>
+      </PosDialog>
+
+      <PosDialog
+        open={noSaleOpen}
+        title="No sale"
+        onClose={() => setNoSaleOpen(false)}
+        footer={
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setNoSaleOpen(false)}
+              className="min-h-11 rounded-md border border-slate-300 text-sm font-semibold"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const result = openCashDrawer("No sale");
+                if (!result.ok) {
+                  setError(result.error);
+                  return;
+                }
+                setNoSaleOpen(false);
+              }}
+              className="min-h-11 rounded-md bg-[var(--pos-header)] text-sm font-semibold text-pos-on-header"
+            >
+              Open drawer
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-600">
+          Opens the drawer without a sale and writes a no-sale entry to the cash
+          log. Current float {formatMoney(floatAmount)}.
+        </p>
+        {error ? <p className="mt-2 text-sm text-rose-600">{error}</p> : null}
       </PosDialog>
 
       <PosDialog
@@ -198,18 +263,19 @@ export function UtilityButtons() {
               }
               setPettyOpen(false);
             }}
-            className="min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-white"
+            className="min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-pos-on-header"
           >
             Record withdrawal
           </button>
         }
       >
         <p className="mb-3 text-sm text-slate-500">
-          Current float {formatMoney(floatAmount)}
+          Current float {formatMoney(floatAmount)}. Reason is saved to the cash
+          log.
         </p>
         <div className="space-y-3">
           <label className="block text-sm font-semibold">
-            Amount (£)
+            Amount ({activeCurrencySymbol()})
             <input
               type="number"
               min={0.01}
@@ -248,14 +314,14 @@ export function UtilityButtons() {
               }
               setFloatOpen(false);
             }}
-            className="min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-white"
+            className="min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-pos-on-header"
           >
             Save float
           </button>
         }
       >
         <label className="block text-sm font-semibold">
-          Float amount (£)
+          Float amount ({activeCurrencySymbol()})
           <input
             type="number"
             min={0}
@@ -265,6 +331,9 @@ export function UtilityButtons() {
             className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 text-sm outline-none ring-[var(--pos-accent)] focus:ring-2"
           />
         </label>
+        <p className="mt-2 text-xs text-slate-500">
+          Change is written to the cash log with before/after amounts.
+        </p>
         {error ? <p className="mt-2 text-sm text-rose-600">{error}</p> : null}
       </PosDialog>
 
@@ -273,21 +342,44 @@ export function UtilityButtons() {
         title="Receipt"
         onClose={() => setReceiptOpen(false)}
         footer={
-          <button
-            type="button"
-            onClick={() => setReceiptOpen(false)}
-            className="min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-white"
-          >
-            Done
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setReceiptOpen(false)}
+              className="min-h-11 rounded-md border border-slate-300 text-sm font-semibold"
+            >
+              Done
+            </button>
+            <button
+              type="button"
+              disabled={!receiptText && !lastReceipt}
+              onClick={() => {
+                const text = receiptText || lastReceipt;
+                if (!text) return;
+                const printed = printReceiptText(text);
+                setError(
+                  printed
+                    ? ""
+                    : "Pop-up blocked — allow pop-ups for this site to print.",
+                );
+                if (printed) {
+                  setStatusMessage("Receipt sent to printer");
+                }
+              }}
+              className="min-h-11 rounded-md bg-[var(--pos-header)] text-sm font-semibold text-pos-on-header disabled:opacity-40"
+            >
+              Print
+            </button>
+          </div>
         }
       >
         {error && !receiptText ? (
           <p className="text-sm text-rose-600">{error}</p>
         ) : (
-          <pre className="overflow-auto rounded-md bg-slate-50 p-3 font-mono text-xs leading-relaxed text-slate-800 whitespace-pre-wrap">
-            {receiptText || lastReceipt}
-          </pre>
+          <div className="space-y-2">
+            {error ? <p className="text-sm text-amber-700">{error}</p> : null}
+            <ReceiptTicket receipt={receiptText || lastReceipt || ""} />
+          </div>
         )}
       </PosDialog>
     </>

@@ -1,38 +1,68 @@
-export type TicketStatus = "open" | "preparing" | "ready" | "paid" | "void";
-export type KitchenStatus = "queued" | "preparing" | "ready";
-export type TableStatus = "free" | "seated" | "ordered" | "bill";
+import { SEED_BRANCH_IDS } from "@/lib/seed-locations";
+import type {
+  DiningOption,
+  KitchenStatus,
+  TableStatus,
+  TicketStatus,
+} from "@/lib/types";
+
+export type { KitchenStatus, TableStatus, TicketStatus };
+
+const D = SEED_BRANCH_IDS.dhanmondi;
+const G = SEED_BRANCH_IDS.gulshan;
 
 export interface TicketLine {
   name: string;
   quantity: number;
+  /** Present on till / orders board lines; kitchen tickets omit pricing. */
+  unitPrice?: number;
+  discountAmount?: number;
+  note?: string;
+  promotionLabel?: string;
 }
 
 export interface TicketOrder {
   id: string;
   number: string;
   table?: string;
-  channel: "eat_in" | "takeaway" | "delivery";
+  channel: DiningOption;
   status: TicketStatus;
+  /** Kitchen prep stage; independent of payment status. */
+  kitchenStatus?: KitchenStatus | null;
   guestName?: string;
   items: TicketLine[];
   total: number;
   placedAt: string;
   server: string;
+  receipt?: string;
+  method?: "cash" | "card";
+  held?: boolean;
+  source?: "till" | "demo";
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface KitchenTicket {
   id: string;
+  orderId: string;
   orderNumber: string;
   table?: string;
-  channel: "eat_in" | "takeaway" | "delivery";
+  channel: DiningOption;
   status: KitchenStatus;
   items: TicketLine[];
   notes?: string;
+  /** ISO timestamp when the ticket entered the kitchen (live KDS). */
+  startedAt?: string;
   elapsedMinutes: number;
+  branchId?: string;
 }
 
 export interface FloorTable {
   id: string;
+  /** Owning restaurant (tenant). */
+  restaurantId?: string;
+  /** Location this floor plan seat belongs to. */
+  branchId: string;
   label: string;
   seats: number;
   zone: "Main" | "Patio" | "Bar";
@@ -40,10 +70,13 @@ export interface FloorTable {
   guestCount?: number;
   openTotal?: number;
   server?: string;
+  activeOrderId?: string | null;
 }
 
 export interface CustomerRecord {
   id: string;
+  /** Owning restaurant (tenant). */
+  restaurantId?: string;
   name: string;
   email: string;
   phone: string;
@@ -55,6 +88,10 @@ export interface CustomerRecord {
 
 export interface InventoryItem {
   id: string;
+  /** Owning restaurant (tenant). */
+  restaurantId?: string;
+  /** Location this stock row belongs to. */
+  branchId: string;
   name: string;
   unit: string;
   onHand: number;
@@ -62,6 +99,7 @@ export interface InventoryItem {
   category: string;
 }
 
+/** Demo ticket list — converted into OpsOrder rows when sample data is enabled. */
 export const INITIAL_ORDERS: TicketOrder[] = [
   {
     id: "ord-1042",
@@ -69,7 +107,7 @@ export const INITIAL_ORDERS: TicketOrder[] = [
     table: "T4",
     channel: "eat_in",
     status: "open",
-    guestName: "Harper",
+    guestName: "Harper Wells",
     items: [
       { name: "Classic Burger", quantity: 2 },
       { name: "Fries", quantity: 2 },
@@ -84,7 +122,7 @@ export const INITIAL_ORDERS: TicketOrder[] = [
     number: "#1041",
     channel: "takeaway",
     status: "preparing",
-    guestName: "Alex",
+    guestName: "Alex Chen",
     items: [
       { name: "Latte", quantity: 2 },
       { name: "Club Sandwich", quantity: 1 },
@@ -99,6 +137,7 @@ export const INITIAL_ORDERS: TicketOrder[] = [
     table: "T1",
     channel: "eat_in",
     status: "ready",
+    guestName: "Samira Khan",
     items: [
       { name: "Fish & Chips", quantity: 1 },
       { name: "Lager Pint", quantity: 1 },
@@ -108,18 +147,215 @@ export const INITIAL_ORDERS: TicketOrder[] = [
     server: "Sam",
   },
   {
+    id: "ord-1039",
+    number: "#1039",
+    table: "T2",
+    channel: "eat_in",
+    status: "ready",
+    guestName: "Riley Morgan",
+    items: [
+      { name: "Veg Risotto", quantity: 1 },
+      { name: "Side Salad", quantity: 1 },
+    ],
+    total: 16.45,
+    placedAt: "13:35",
+    server: "Maya",
+  },
+  {
     id: "ord-1038",
     number: "#1038",
     channel: "delivery",
     status: "paid",
-    guestName: "Jordan",
+    guestName: "Jordan Lee",
     items: [
       { name: "Carbonara", quantity: 1 },
       { name: "Garlic Bread", quantity: 1 },
+      { name: "Cola", quantity: 1 },
     ],
-    total: 17.2,
+    total: 19.7,
     placedAt: "13:20",
     server: "Maya",
+    method: "card",
+  },
+  {
+    id: "ord-1037",
+    number: "#1037",
+    table: "T3",
+    channel: "eat_in",
+    status: "paid",
+    guestName: "Harper Wells",
+    items: [
+      { name: "Classic Burger", quantity: 2 },
+      { name: "Fries", quantity: 2 },
+      { name: "Cola", quantity: 2 },
+      { name: "Cheesecake", quantity: 1 },
+    ],
+    total: 47.5,
+    placedAt: "12:40",
+    server: "Maya",
+    method: "card",
+  },
+  {
+    id: "ord-1036",
+    number: "#1036",
+    channel: "takeaway",
+    status: "paid",
+    guestName: "Alex Chen",
+    items: [
+      { name: "Latte", quantity: 3 },
+      { name: "Chocolate Brownie", quantity: 2 },
+    ],
+    total: 22.1,
+    placedAt: "10:15",
+    server: "Kyle",
+    method: "cash",
+  },
+  {
+    id: "ord-1034",
+    number: "#1034",
+    table: "T5",
+    channel: "eat_in",
+    status: "paid",
+    guestName: "Samira Khan",
+    items: [
+      { name: "Fish & Chips", quantity: 2 },
+      { name: "Lager Pint", quantity: 2 },
+      { name: "Side Salad", quantity: 1 },
+    ],
+    total: 46.25,
+    placedAt: "13:05",
+    server: "Sam",
+    method: "card",
+  },
+  {
+    id: "ord-1033",
+    number: "#1033",
+    channel: "takeaway",
+    status: "paid",
+    guestName: "Riley Morgan",
+    items: [
+      { name: "Latte", quantity: 2 },
+      { name: "Cappuccino", quantity: 1 },
+      { name: "Avocado Toast", quantity: 1 },
+    ],
+    total: 20.15,
+    placedAt: "09:40",
+    server: "Kyle",
+    method: "cash",
+  },
+  {
+    id: "ord-1032",
+    number: "#1032",
+    channel: "delivery",
+    status: "paid",
+    guestName: "Riley Morgan",
+    items: [
+      { name: "Classic Burger", quantity: 1 },
+      { name: "Fries", quantity: 1 },
+      { name: "Cola", quantity: 1 },
+    ],
+    total: 20.5,
+    placedAt: "14:30",
+    server: "Maya",
+    method: "card",
+  },
+  {
+    id: "ord-1031",
+    number: "#1031",
+    table: "B3",
+    channel: "eat_in",
+    status: "paid",
+    guestName: "Jordan Lee",
+    items: [
+      { name: "Lager Pint", quantity: 2 },
+      { name: "Soup of the Day", quantity: 1 },
+      { name: "Garlic Bread", quantity: 1 },
+    ],
+    total: 19.85,
+    placedAt: "11:25",
+    server: "Sam",
+    method: "cash",
+  },
+  {
+    id: "ord-1030",
+    number: "#1030",
+    channel: "takeaway",
+    status: "paid",
+    guestName: "Alex Chen",
+    items: [
+      { name: "Club Sandwich", quantity: 1 },
+      { name: "Cola", quantity: 1 },
+      { name: "Americano", quantity: 1 },
+    ],
+    total: 14.25,
+    placedAt: "15:10",
+    server: "Kyle",
+    method: "card",
+  },
+  {
+    id: "ord-1029",
+    number: "#1029",
+    table: "T6",
+    channel: "eat_in",
+    status: "paid",
+    guestName: "Harper Wells",
+    items: [
+      { name: "Eggs Benedict", quantity: 2 },
+      { name: "Berry Smoothie", quantity: 1 },
+      { name: "Lemonade", quantity: 1 },
+    ],
+    total: 30.45,
+    placedAt: "11:05",
+    server: "Maya",
+    method: "card",
+  },
+  {
+    id: "ord-1028",
+    number: "#1028",
+    channel: "delivery",
+    status: "paid",
+    guestName: "Jordan Lee",
+    items: [
+      { name: "Stroganoff V", quantity: 1 },
+      { name: "Fries", quantity: 1 },
+      { name: "Lemonade", quantity: 2 },
+    ],
+    total: 22.45,
+    placedAt: "18:40",
+    server: "Sam",
+    method: "card",
+  },
+  {
+    id: "ord-1027",
+    number: "#1027",
+    table: "B1",
+    channel: "eat_in",
+    status: "paid",
+    items: [
+      { name: "Gin & Tonic", quantity: 2 },
+      { name: "Bar Nuts", quantity: 1 },
+      { name: "Loaded Fries", quantity: 1 },
+    ],
+    total: 25.0,
+    placedAt: "19:15",
+    server: "Kyle",
+    method: "cash",
+  },
+  {
+    id: "ord-1026",
+    number: "#1026",
+    channel: "takeaway",
+    status: "paid",
+    guestName: "Samira Khan",
+    items: [
+      { name: "Lunch Pasta", quantity: 1 },
+      { name: "Lunch Salad", quantity: 1 },
+      { name: "Cola", quantity: 2 },
+    ],
+    total: 21.98,
+    placedAt: "12:10",
+    server: "Maya",
+    method: "card",
   },
   {
     id: "ord-1035",
@@ -137,6 +373,7 @@ export const INITIAL_ORDERS: TicketOrder[] = [
 export const INITIAL_KITCHEN: KitchenTicket[] = [
   {
     id: "k-1",
+    orderId: "ord-1042",
     orderNumber: "#1042",
     table: "T4",
     channel: "eat_in",
@@ -150,6 +387,7 @@ export const INITIAL_KITCHEN: KitchenTicket[] = [
   },
   {
     id: "k-2",
+    orderId: "ord-1041",
     orderNumber: "#1041",
     channel: "takeaway",
     status: "preparing",
@@ -158,6 +396,7 @@ export const INITIAL_KITCHEN: KitchenTicket[] = [
   },
   {
     id: "k-3",
+    orderId: "ord-1040",
     orderNumber: "#1040",
     table: "T1",
     channel: "eat_in",
@@ -167,8 +406,9 @@ export const INITIAL_KITCHEN: KitchenTicket[] = [
   },
   {
     id: "k-4",
+    orderId: "ord-1039",
     orderNumber: "#1039",
-    table: "T9",
+    table: "T2",
     channel: "eat_in",
     status: "ready",
     items: [
@@ -179,19 +419,31 @@ export const INITIAL_KITCHEN: KitchenTicket[] = [
   },
 ];
 
+/** Legacy single-branch floor — ops normalizes to all branches on hydrate. */
 export const INITIAL_TABLES: FloorTable[] = [
-  { id: "t1", label: "T1", seats: 2, zone: "Main", status: "ordered", guestCount: 2, openTotal: 21.15, server: "Sam" },
-  { id: "t2", label: "T2", seats: 4, zone: "Main", status: "free" },
-  { id: "t3", label: "T3", seats: 4, zone: "Main", status: "seated", guestCount: 3, server: "Maya" },
-  { id: "t4", label: "T4", seats: 4, zone: "Main", status: "ordered", guestCount: 4, openTotal: 41.0, server: "Maya" },
-  { id: "t5", label: "T5", seats: 2, zone: "Main", status: "bill", guestCount: 2, openTotal: 28.4, server: "Kyle" },
-  { id: "t6", label: "T6", seats: 6, zone: "Patio", status: "free" },
-  { id: "t7", label: "T7", seats: 4, zone: "Patio", status: "free" },
-  { id: "t8", label: "T8", seats: 2, zone: "Patio", status: "seated", guestCount: 2, server: "Sam" },
-  { id: "b1", label: "B1", seats: 1, zone: "Bar", status: "ordered", guestCount: 1, openTotal: 7.5, server: "Kyle" },
-  { id: "b2", label: "B2", seats: 1, zone: "Bar", status: "free" },
-  { id: "b3", label: "B3", seats: 2, zone: "Bar", status: "bill", guestCount: 2, openTotal: 16.4, server: "Maya" },
-  { id: "b4", label: "B4", seats: 1, zone: "Bar", status: "free" },
+  { id: `${D}:t1`, branchId: D, label: "T1", seats: 2, zone: "Main", status: "free" },
+  { id: `${D}:t2`, branchId: D, label: "T2", seats: 4, zone: "Main", status: "free" },
+  { id: `${D}:t3`, branchId: D, label: "T3", seats: 4, zone: "Main", status: "free" },
+  { id: `${D}:t4`, branchId: D, label: "T4", seats: 4, zone: "Main", status: "free" },
+  { id: `${D}:t5`, branchId: D, label: "T5", seats: 2, zone: "Main", status: "free" },
+  { id: `${D}:t6`, branchId: D, label: "T6", seats: 6, zone: "Patio", status: "free" },
+  { id: `${D}:t7`, branchId: D, label: "T7", seats: 4, zone: "Patio", status: "free" },
+  { id: `${D}:t8`, branchId: D, label: "T8", seats: 2, zone: "Patio", status: "free" },
+  { id: `${D}:b1`, branchId: D, label: "B1", seats: 1, zone: "Bar", status: "free" },
+  { id: `${D}:b2`, branchId: D, label: "B2", seats: 1, zone: "Bar", status: "free" },
+  { id: `${D}:b3`, branchId: D, label: "B3", seats: 2, zone: "Bar", status: "free" },
+  { id: `${D}:b4`, branchId: D, label: "B4", seats: 1, zone: "Bar", status: "free" },
+];
+
+export const DEMO_TABLES: FloorTable[] = [
+  { id: `${G}:t1`, branchId: G, label: "T1", seats: 2, zone: "Main", status: "ordered", guestCount: 2, openTotal: 21.15, server: "Sam", activeOrderId: "ord-1040" },
+  { id: `${D}:t2`, branchId: D, label: "T2", seats: 4, zone: "Main", status: "ordered", guestCount: 2, openTotal: 16.45, server: "Maya", activeOrderId: "ord-1039" },
+  { id: `${D}:t3`, branchId: D, label: "T3", seats: 4, zone: "Main", status: "seated", guestCount: 3, server: "Maya" },
+  { id: `${D}:t4`, branchId: D, label: "T4", seats: 4, zone: "Main", status: "ordered", guestCount: 4, openTotal: 41.0, server: "Maya", activeOrderId: "ord-1042" },
+  { id: `${D}:t5`, branchId: D, label: "T5", seats: 2, zone: "Main", status: "bill", guestCount: 2, openTotal: 28.4, server: "Kyle" },
+  { id: `${G}:t8`, branchId: G, label: "T8", seats: 2, zone: "Patio", status: "seated", guestCount: 2, server: "Sam" },
+  { id: `${D}:b1`, branchId: D, label: "B1", seats: 1, zone: "Bar", status: "ordered", guestCount: 1, openTotal: 7.5, server: "Kyle" },
+  { id: `${D}:b3`, branchId: D, label: "B3", seats: 2, zone: "Bar", status: "bill", guestCount: 2, openTotal: 16.4, server: "Maya" },
 ];
 
 export const INITIAL_CUSTOMERS: CustomerRecord[] = [
@@ -244,17 +496,18 @@ export const INITIAL_CUSTOMERS: CustomerRecord[] = [
   },
 ];
 
+/** Legacy single-branch stock — ops normalizes to all branches on hydrate. */
 export const INITIAL_INVENTORY: InventoryItem[] = [
-  { id: "i1", name: "Espresso beans", unit: "kg", onHand: 4.2, parLevel: 5, category: "Barista" },
-  { id: "i2", name: "Whole milk", unit: "L", onHand: 18, parLevel: 20, category: "Barista" },
-  { id: "i3", name: "Oat milk", unit: "L", onHand: 6, parLevel: 10, category: "Barista" },
-  { id: "i4", name: "Burger patties", unit: "pcs", onHand: 42, parLevel: 40, category: "Mains" },
-  { id: "i5", name: "Fries (frozen)", unit: "kg", onHand: 8, parLevel: 12, category: "Sides" },
-  { id: "i6", name: "Cod fillets", unit: "pcs", onHand: 9, parLevel: 15, category: "Mains" },
-  { id: "i7", name: "Lager keg", unit: "L", onHand: 28, parLevel: 30, category: "Beers" },
-  { id: "i8", name: "Brioche buns", unit: "pcs", onHand: 24, parLevel: 30, category: "Mains" },
-  { id: "i9", name: "Cheesecake", unit: "slices", onHand: 3, parLevel: 8, category: "Desserts" },
-  { id: "i10", name: "Cola syrup", unit: "L", onHand: 2.5, parLevel: 4, category: "Soft Drinks" },
+  { id: `${D}:i1`, branchId: D, name: "Espresso beans", unit: "kg", onHand: 4.2, parLevel: 5, category: "Barista" },
+  { id: `${D}:i2`, branchId: D, name: "Whole milk", unit: "L", onHand: 18, parLevel: 20, category: "Barista" },
+  { id: `${D}:i3`, branchId: D, name: "Oat milk", unit: "L", onHand: 6, parLevel: 10, category: "Barista" },
+  { id: `${D}:i4`, branchId: D, name: "Burger patties", unit: "pcs", onHand: 42, parLevel: 40, category: "Mains" },
+  { id: `${D}:i5`, branchId: D, name: "Fries (frozen)", unit: "kg", onHand: 8, parLevel: 12, category: "Sides" },
+  { id: `${D}:i6`, branchId: D, name: "Cod fillets", unit: "pcs", onHand: 9, parLevel: 15, category: "Mains" },
+  { id: `${D}:i7`, branchId: D, name: "Lager keg", unit: "L", onHand: 28, parLevel: 30, category: "Beers" },
+  { id: `${D}:i8`, branchId: D, name: "Brioche buns", unit: "pcs", onHand: 24, parLevel: 30, category: "Mains" },
+  { id: `${D}:i9`, branchId: D, name: "Cheesecake", unit: "slices", onHand: 3, parLevel: 8, category: "Desserts" },
+  { id: `${D}:i10`, branchId: D, name: "Cola syrup", unit: "L", onHand: 2.5, parLevel: 4, category: "Soft Drinks" },
 ];
 
 export const REPORT_SUMMARY = {

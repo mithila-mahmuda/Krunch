@@ -5,7 +5,7 @@ import { TablesScreen } from "@/components/modules/TablesScreen";
 
 export default function TablesPage() {
   return (
-    <RequireAuth>
+    <RequireAuth permission="access_tables">
       <TablesScreen />
     </RequireAuth>
   );

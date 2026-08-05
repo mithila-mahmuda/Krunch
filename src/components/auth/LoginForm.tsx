@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useId, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LoaderCircle } from "lucide-react";
+import { homePathForRole } from "@/lib/permissions";
 import { useAuthStore } from "@/store/auth-store";
 
 function GoogleIcon() {
@@ -48,33 +49,33 @@ export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setIsSubmitting(true);
 
-    const result = signIn(email, password);
+    const result = await signIn(email, password);
     if (!result.ok) {
       setError(result.error);
       setIsSubmitting(false);
       return;
     }
 
-    router.replace("/pos");
+    router.replace(homePathForRole(useAuthStore.getState().user?.role));
   }
 
-  function handleGoogleSignIn() {
+  async function handleGoogleSignIn() {
     setError(null);
     setIsGoogleSubmitting(true);
 
-    const result = signInWithGoogle();
+    const result = await signInWithGoogle();
     if (!result.ok) {
       setError(result.error);
       setIsGoogleSubmitting(false);
       return;
     }
 
-    router.replace("/pos");
+    router.replace(homePathForRole(useAuthStore.getState().user?.role));
   }
 
   const isBusy = isSubmitting || isGoogleSubmitting;
@@ -95,7 +96,7 @@ export function LoginForm() {
         {isGoogleSubmitting ? (
           <>
             <LoaderCircle className="h-5 w-5 animate-spin text-slate-500" />
-            Connecting to Google…
+            Signing in…
           </>
         ) : (
           <>
@@ -148,7 +149,9 @@ export function LoginForm() {
             type="button"
             className="text-sm font-medium text-[var(--pos-accent)] hover:underline"
             onClick={() =>
-              window.alert("Password reset will connect to email in a later phase.")
+              window.alert(
+                "Password reset will be available in a later phase. Use a demo account for now.",
+              )
             }
           >
             Forgot password?

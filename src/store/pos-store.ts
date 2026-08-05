@@ -1,18 +1,27 @@
 "use client";
 
 import { create } from "zustand";
+import { diningOptionLabel, formatMoney } from "@/lib/format";
 import { promotions } from "@/lib/mock-data";
-import { computeTotals } from "@/lib/order-math";
-import { useAuthStore } from "@/store/auth-store";
+import { printReceiptText } from "@/lib/print-receipt";
+import {
+  buildReceiptData,
+  resolveReceiptBrand,
+  serializeReceipt,
+} from "@/lib/receipt";
 import type {
-  CompletedOrder,
   DiningOption,
   HeldOrder,
   OrderLine,
   Product,
   SidebarTab,
-  TenderResult,
+  PaymentResult,
 } from "@/lib/types";
+import { assertCan } from "@/lib/permissions";
+import { useAuthStore } from "@/store/auth-store";
+import { useCatalogStore } from "@/store/catalog-store";
+import { useOpsStore } from "@/store/ops-store";
+import { useSettingsStore } from "@/store/settings-store";
 
 interface PosState {
   activeCategoryId: string | null;
@@ -23,22 +32,21 @@ interface PosState {
   activeTab: SidebarTab;
   navOpen: boolean;
   orderPanelOpen: boolean;
-  searchOpen: boolean;
   customerId: string | null;
   customerName: string | null;
   tableId: string | null;
   tableLabel: string | null;
-  heldOrders: HeldOrder[];
-  completedOrders: CompletedOrder[];
-  floatAmount: number;
+  /** When set, pay/fire updates this ops order instead of creating a new one. */
+  editingOrderId: string | null;
   statusMessage: string | null;
   lastReceipt: string | null;
   setActiveCategory: (categoryId: string | null) => void;
   setActiveTab: (tab: SidebarTab) => void;
   setNavOpen: (open: boolean) => void;
   setOrderPanelOpen: (open: boolean) => void;
-  setSearchOpen: (open: boolean) => void;
-  addProduct: (product: Product) => void;
+  addProduct: (
+    product: Product,
+  ) => { ok: true } | { ok: false; error: string };
   addMiscProduct: (name: string, price: number) => void;
   selectLine: (lineId: string | null) => void;
   updateQuantity: (lineId: string, delta: number) => void;
@@ -55,11 +63,17 @@ interface PosState {
   attachCustomer: (customer: { id: string; name: string } | null) => void;
   attachTable: (table: { id: string; label: string } | null) => void;
   holdOrder: () => { ok: true; order: HeldOrder } | { ok: false; error: string };
+  fireOrder: () => { ok: true } | { ok: false; error: string };
   recallOrder: (orderId: string) => { ok: true } | { ok: false; error: string };
+  loadOpenOrder: (orderId: string) => { ok: true } | { ok: false; error: string };
+  loadTableTab: (tableId: string) => { ok: true } | { ok: false; error: string };
+  voidOrder: () => { ok: true } | { ok: false; error: string };
   completePayment: (
-    tender: TenderResult,
+    payment: PaymentResult,
   ) => { ok: true; receipt: string } | { ok: false; error: string };
-  openCashDrawer: (reason: string) => void;
+  openCashDrawer: (
+    reason: string,
+  ) => { ok: true } | { ok: false; error: string };
   recordPettyCash: (
     amount: number,
     reason: string,
@@ -67,16 +81,19 @@ interface PosState {
   adjustFloat: (
     amount: number,
   ) => { ok: true } | { ok: false; error: string };
-  printReceipt: () => { ok: true; receipt: string } | { ok: false; error: string };
+  printReceipt: () =>
+    | {
+        ok: true;
+        receipt: string;
+        printed: boolean;
+      }
+    | { ok: false; error: string };
   setStatusMessage: (message: string | null) => void;
+  applyServiceDefault: () => void;
 }
 
 function createLineId(): string {
   return `line-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function createOrderNumber(): string {
-  return `#${1000 + Math.floor(Math.random() * 9000)}`;
 }
 
 function applyPromotions(lines: OrderLine[]): OrderLine[] {
@@ -122,54 +139,88 @@ function emptyTicket() {
     customerName: null as string | null,
     tableId: null as string | null,
     tableLabel: null as string | null,
-    serviceEnabled: false,
+    editingOrderId: null as string | null,
+    serviceEnabled: useSettingsStore.getState().serviceDefault,
     diningOption: "eat_in" as DiningOption,
   };
 }
 
-function buildReceipt(state: {
+function ticketSnapshot(state: PosState) {
+  return {
+    lines: state.lines,
+    diningOption: state.diningOption,
+    serviceEnabled: state.serviceEnabled,
+    customerId: state.customerId,
+    customerName: state.customerName,
+    tableId: state.tableId,
+    tableLabel: state.tableLabel,
+  };
+}
+
+function buildLocalReceipt(state: {
   lines: OrderLine[];
   serviceEnabled: boolean;
   diningOption: DiningOption;
   customerName: string | null;
+  tableId: string | null;
   tableLabel: string | null;
-  tender?: TenderResult;
+  editingOrderId?: string | null;
+  payment?: PaymentResult;
 }): string {
-  const totals = computeTotals(state.lines, state.serviceEnabled);
-  const itemLines = state.lines
-    .map((line) => {
-      const total = line.unitPrice * line.quantity - line.discountAmount;
-      const note = line.note ? `\n   note: ${line.note}` : "";
-      return `${line.quantity}x ${line.name}  £${total.toFixed(2)}${note}`;
-    })
-    .join("\n");
+  const auth = useAuthStore.getState().user;
+  const brand = resolveReceiptBrand();
+  const ops = useOpsStore.getState();
+  const existing = state.editingOrderId
+    ? ops.orders.find((order) => order.id === state.editingOrderId)
+    : undefined;
 
-  return [
-    "KRUNCH RECEIPT",
-    `Dining: ${state.diningOption.replace("_", " ")}`,
-    state.tableLabel ? `Table: ${state.tableLabel}` : null,
-    state.customerName ? `Guest: ${state.customerName}` : null,
-    "----------------",
-    itemLines || "(no items)",
-    "----------------",
-    `Subtotal  £${totals.subtotal.toFixed(2)}`,
-    totals.totalDiscount > 0
-      ? `Discount  -£${totals.totalDiscount.toFixed(2)}`
-      : null,
-    state.serviceEnabled
-      ? `Service   £${totals.serviceCharge.toFixed(2)}`
-      : null,
-    `Tax       £${totals.tax.toFixed(2)}`,
-    `TOTAL     £${totals.total.toFixed(2)}`,
-    state.tender
-      ? `${state.tender.method.toUpperCase()} £${state.tender.amountTendered.toFixed(2)}`
-      : null,
-    state.tender && state.tender.change > 0
-      ? `Change    £${state.tender.change.toFixed(2)}`
-      : null,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  return serializeReceipt(
+    buildReceiptData({
+      lines: state.lines,
+      diningOption: state.diningOption,
+      serviceEnabled: state.serviceEnabled,
+      orderNumber: existing?.number ?? "PREVIEW",
+      tableLabel: state.tableLabel,
+      customerName: state.customerName,
+      server: existing?.server ?? auth?.name ?? "Staff",
+      orderedAt: existing?.placedAt ?? new Date(),
+      payment: state.payment
+        ? { ...state.payment, change: state.payment.change }
+        : undefined,
+      restaurantName: brand.restaurantName,
+      phone: brand.phone,
+      addressLines: brand.addressLines,
+      logoDataUrl: brand.logoDataUrl,
+    }),
+  );
+}
+
+function toHeldOrder(order: {
+  id: string;
+  number: string;
+  lines: OrderLine[];
+  diningOption: DiningOption;
+  serviceEnabled: boolean;
+  customerId: string | null;
+  customerName: string | null;
+  tableId: string | null;
+  tableLabel: string | null;
+  placedAt: string;
+  total: number;
+}): HeldOrder {
+  return {
+    id: order.id,
+    number: order.number,
+    lines: order.lines,
+    diningOption: order.diningOption,
+    serviceEnabled: order.serviceEnabled,
+    customerId: order.customerId,
+    customerName: order.customerName,
+    tableId: order.tableId,
+    tableLabel: order.tableLabel,
+    heldAt: order.placedAt,
+    total: order.total,
+  };
 }
 
 export const usePosStore = create<PosState>((set, get) => ({
@@ -181,14 +232,11 @@ export const usePosStore = create<PosState>((set, get) => ({
   activeTab: "menu",
   navOpen: false,
   orderPanelOpen: false,
-  searchOpen: false,
   customerId: null,
   customerName: null,
   tableId: null,
   tableLabel: null,
-  heldOrders: [],
-  completedOrders: [],
-  floatAmount: 150,
+  editingOrderId: null,
   statusMessage: null,
   lastReceipt: null,
 
@@ -196,14 +244,24 @@ export const usePosStore = create<PosState>((set, get) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   setNavOpen: (open) => set({ navOpen: open }),
   setOrderPanelOpen: (open) => set({ orderPanelOpen: open }),
-  setSearchOpen: (open) => set({ searchOpen: open }),
   setStatusMessage: (message) => set({ statusMessage: message }),
 
+  applyServiceDefault: () => {
+    set({ serviceEnabled: useSettingsStore.getState().serviceDefault });
+  },
+
   addProduct: (product) => {
+    const catalogProduct =
+      useCatalogStore.getState().getProduct(product.id) ?? product;
+    if (catalogProduct.available === false) {
+      set({ statusMessage: `${catalogProduct.name} is sold out` });
+      return { ok: false, error: `${catalogProduct.name} is sold out` };
+    }
+
     set((state) => {
       const existing = state.lines.find(
         (line) =>
-          line.productId === product.id &&
+          line.productId === catalogProduct.id &&
           !line.note &&
           line.manualDiscountAmount === 0,
       );
@@ -219,9 +277,9 @@ export const usePosStore = create<PosState>((set, get) => ({
       } else {
         const newLine: OrderLine = {
           id: createLineId(),
-          productId: product.id,
-          name: product.name,
-          unitPrice: product.price,
+          productId: catalogProduct.id,
+          name: catalogProduct.name,
+          unitPrice: catalogProduct.price,
           quantity: 1,
           manualDiscountAmount: 0,
           discountAmount: 0,
@@ -231,16 +289,18 @@ export const usePosStore = create<PosState>((set, get) => ({
 
       const withPromos = applyPromotions(lines);
       const selected =
-        withPromos.find((line) => line.productId === product.id)?.id ??
+        withPromos.find((line) => line.productId === catalogProduct.id)?.id ??
         state.selectedLineId;
 
       return {
         lines: withPromos,
         selectedLineId: selected,
-        activeCategoryId: state.activeCategoryId ?? product.categoryId,
+        activeCategoryId: state.activeCategoryId ?? catalogProduct.categoryId,
         orderPanelOpen: state.orderPanelOpen,
       };
     });
+
+    return { ok: true };
   },
 
   addMiscProduct: (name, price) => {
@@ -315,7 +375,7 @@ export const usePosStore = create<PosState>((set, get) => ({
   setDiningOption: (option) =>
     set({
       diningOption: option,
-      statusMessage: `Dining set to ${option.replace("_", " ")}`,
+      statusMessage: `Dining set to ${diningOptionLabel(option)}`,
     }),
 
   toggleService: () =>
@@ -331,6 +391,17 @@ export const usePosStore = create<PosState>((set, get) => ({
   },
 
   applyLineDiscount: (lineId, amount, meta) => {
+    if (amount > 0) {
+      const denied = assertCan(
+        useAuthStore.getState().user?.role,
+        "apply_discount",
+      );
+      if (!denied.ok) {
+        set({ statusMessage: denied.error });
+        return;
+      }
+    }
+
     set((state) => {
       const lines = state.lines.map((line) => {
         if (line.id !== lineId) return line;
@@ -348,8 +419,8 @@ export const usePosStore = create<PosState>((set, get) => ({
       if (amount > 0) {
         statusMessage =
           meta?.mode === "percent" && meta.percent != null
-            ? `Discount ${meta.percent}% (£${amount.toFixed(2)}) applied`
-            : `Discount £${amount.toFixed(2)} applied`;
+            ? `Discount ${meta.percent}% (${formatMoney(amount)}) applied`
+            : `Discount ${formatMoney(amount)} applied`;
       }
 
       return {
@@ -368,57 +439,107 @@ export const usePosStore = create<PosState>((set, get) => ({
         : "Customer removed",
     }),
 
-  attachTable: (table) =>
+  attachTable: (table) => {
+    if (table) {
+      const floor = useOpsStore
+        .getState()
+        .tables.find((item) => item.id === table.id);
+      if (floor?.status === "free") {
+        useOpsStore.getState().seatTable(table.id);
+      }
+    }
     set({
       tableId: table?.id ?? null,
       tableLabel: table?.label ?? null,
       statusMessage: table ? `Table ${table.label} assigned` : "Table cleared",
-    }),
+    });
+  },
 
   holdOrder: () => {
     const state = get();
-    if (state.lines.length === 0) {
-      return { ok: false, error: "Add items before holding an order." };
-    }
-
-    const totals = computeTotals(state.lines, state.serviceEnabled);
-    const order: HeldOrder = {
-      id: `hold-${Date.now().toString(36)}`,
-      number: createOrderNumber(),
-      lines: state.lines.map((line) => ({ ...line })),
-      diningOption: state.diningOption,
-      serviceEnabled: state.serviceEnabled,
-      customerId: state.customerId,
-      customerName: state.customerName,
-      tableId: state.tableId,
-      tableLabel: state.tableLabel,
-      heldAt: new Date().toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      total: totals.total,
-    };
+    const result = useOpsStore.getState().holdOrder(ticketSnapshot(state));
+    if (!result.ok) return result;
 
     set({
-      heldOrders: [order, ...state.heldOrders],
       ...emptyTicket(),
       activeTab: "orders",
-      statusMessage: `Order ${order.number} held`,
+      statusMessage: `Order ${result.order.number} held — recall from Orders`,
     });
 
-    return { ok: true, order };
+    return { ok: true, order: toHeldOrder(result.order) };
+  },
+
+  fireOrder: () => {
+    const state = get();
+    const ops = useOpsStore.getState();
+    const result = state.editingOrderId
+      ? ops.replaceOpenOrder(state.editingOrderId, {
+          ...ticketSnapshot(state),
+          fireToKitchen: true,
+        })
+      : ops.fireOrder(ticketSnapshot(state));
+    if (!result.ok) return result;
+
+    set({
+      ...emptyTicket(),
+      activeTab: "orders",
+      statusMessage: `Order ${result.order.number} sent to kitchen`,
+    });
+
+    return { ok: true };
   },
 
   recallOrder: (orderId) => {
     const state = get();
-    const order = state.heldOrders.find((item) => item.id === orderId);
-    if (!order) return { ok: false, error: "Held order not found." };
-
     if (state.lines.length > 0) {
       return {
         ok: false,
         error: "Clear or hold the current ticket before recalling.",
       };
+    }
+
+    const result = useOpsStore.getState().recallHeldOrder(orderId);
+    if (!result.ok) return result;
+
+    const order = result.order;
+    set({
+      lines: order.lines.map((line) => ({ ...line })),
+      selectedLineId: order.lines.at(-1)?.id ?? null,
+      diningOption: order.diningOption,
+      serviceEnabled: order.serviceEnabled,
+      customerId: order.customerId,
+      customerName: order.customerName,
+      tableId: order.tableId,
+      tableLabel: order.tableLabel,
+      editingOrderId: order.id,
+      activeTab: "menu",
+      statusMessage: `Recalled ${order.number}`,
+    });
+
+    return { ok: true };
+  },
+
+  loadOpenOrder: (orderId) => {
+    const state = get();
+    if (state.lines.length > 0) {
+      return {
+        ok: false,
+        error: "Clear or hold the current ticket before opening another order.",
+      };
+    }
+
+    const order = useOpsStore.getState().orders.find(
+      (item) =>
+        item.id === orderId &&
+        item.status !== "paid" &&
+        item.status !== "void",
+    );
+    if (!order) {
+      return { ok: false, error: "Open order not found." };
+    }
+
+    if (order.held) {
+      return get().recallOrder(orderId);
     }
 
     set({
@@ -430,96 +551,166 @@ export const usePosStore = create<PosState>((set, get) => ({
       customerName: order.customerName,
       tableId: order.tableId,
       tableLabel: order.tableLabel,
-      heldOrders: state.heldOrders.filter((item) => item.id !== orderId),
+      editingOrderId: order.id,
       activeTab: "menu",
-      statusMessage: `Recalled ${order.number}`,
+      orderPanelOpen: false,
+      statusMessage: `Loaded ${order.number} on the till`,
     });
 
     return { ok: true };
   },
 
-  completePayment: (tender) => {
+  voidOrder: () => {
+    const denied = assertCan(useAuthStore.getState().user?.role, "void_order");
+    if (!denied.ok) return denied;
+
     const state = get();
+    const ops = useOpsStore.getState();
+
+    if (state.editingOrderId) {
+      const result = ops.updateOrderStatus(state.editingOrderId, "void");
+      if (!result.ok) return result;
+      set({
+        ...emptyTicket(),
+        statusMessage: "Order voided",
+      });
+      return { ok: true };
+    }
+
+    // New ticket — void without hold/send first (records a voided order).
     if (state.lines.length === 0) {
-      return { ok: false, error: "Nothing to pay." };
+      return { ok: false, error: "Nothing to void." };
     }
 
-    const totals = computeTotals(state.lines, state.serviceEnabled);
-    if (tender.amountTendered + 0.001 < totals.due) {
-      return { ok: false, error: "Amount tendered is less than due." };
-    }
-
-    const change =
-      tender.method === "cash"
-        ? Math.round((tender.amountTendered - totals.due) * 100) / 100
-        : 0;
-
-    const receipt = buildReceipt({
-      ...state,
-      tender: { ...tender, change },
-    });
-
-    const completed: CompletedOrder = {
-      id: `paid-${Date.now().toString(36)}`,
-      number: createOrderNumber(),
-      lines: state.lines.map((line) => ({ ...line })),
-      diningOption: state.diningOption,
-      serviceEnabled: state.serviceEnabled,
-      customerId: state.customerId,
-      customerName: state.customerName,
-      tableId: state.tableId,
-      tableLabel: state.tableLabel,
-      paidAt: new Date().toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      total: totals.total,
-      method: tender.method,
-      receipt,
-      server: useAuthStore.getState().user?.name ?? "Staff",
-    };
+    const result = ops.voidDraftTicket(ticketSnapshot(state));
+    if (!result.ok) return result;
 
     set({
       ...emptyTicket(),
-      completedOrders: [completed, ...state.completedOrders],
-      floatAmount:
-        tender.method === "cash"
-          ? state.floatAmount + totals.due
-          : state.floatAmount,
-      lastReceipt: receipt,
-      statusMessage: `Paid £${totals.due.toFixed(2)}${
-        change > 0 ? ` · Change £${change.toFixed(2)}` : ""
-      }`,
+      statusMessage: `Order ${result.order.number} voided`,
     });
-
-    return { ok: true, receipt };
+    return { ok: true };
   },
 
-  openCashDrawer: (reason) => {
-    set({ statusMessage: `Cash drawer opened (${reason})` });
-  },
-
-  recordPettyCash: (amount, reason) => {
-    if (!(amount > 0)) return { ok: false, error: "Enter a valid amount." };
-    if (!reason.trim()) return { ok: false, error: "Enter a reason." };
-
+  loadTableTab: (tableId) => {
     const state = get();
-    if (amount > state.floatAmount) {
-      return { ok: false, error: "Not enough float in the drawer." };
+    if (state.lines.length > 0) {
+      return {
+        ok: false,
+        error: "Clear or hold the current ticket first.",
+      };
+    }
+
+    const ops = useOpsStore.getState();
+    const open = ops.orders.find(
+      (order) =>
+        order.tableId === tableId &&
+        order.status !== "paid" &&
+        order.status !== "void",
+    );
+
+    if (!open) {
+      const table = ops.tables.find((item) => item.id === tableId);
+      if (table) {
+        if (table.branchId) {
+          useSettingsStore.getState().setActiveBranch(table.branchId);
+        }
+        set({
+          tableId: table.id,
+          tableLabel: table.label,
+          editingOrderId: null,
+          activeTab: "menu",
+          statusMessage: `Table ${table.label} ready for new order`,
+        });
+        if (table.status === "free") ops.seatTable(table.id);
+        return { ok: true };
+      }
+      return { ok: false, error: "Table not found." };
+    }
+
+    if (open.branchId) {
+      useSettingsStore.getState().setActiveBranch(open.branchId);
+    }
+
+    if (open.held) {
+      return get().recallOrder(open.id);
     }
 
     set({
-      floatAmount: Math.round((state.floatAmount - amount) * 100) / 100,
-      statusMessage: `Petty cash £${amount.toFixed(2)} recorded`,
+      lines: open.lines.map((line) => ({ ...line })),
+      selectedLineId: open.lines.at(-1)?.id ?? null,
+      diningOption: open.diningOption,
+      serviceEnabled: open.serviceEnabled,
+      customerId: open.customerId,
+      customerName: open.customerName,
+      tableId: open.tableId,
+      tableLabel: open.tableLabel,
+      editingOrderId: open.id,
+      activeTab: "menu",
+      statusMessage: `Loaded ${open.number} for ${open.tableLabel}`,
+    });
+
+    return { ok: true };
+  },
+
+  completePayment: (payment) => {
+    const state = get();
+    const result = useOpsStore.getState().completePayment({
+      ...ticketSnapshot(state),
+      payment,
+      existingOrderId: state.editingOrderId,
+    });
+    if (!result.ok) return result;
+
+    const kitchenNote = result.firedToKitchen
+      ? " · Sent to kitchen"
+      : result.order.kitchenStatus
+        ? ` · Kitchen: ${result.order.kitchenStatus}`
+        : "";
+
+    set({
+      ...emptyTicket(),
+      lastReceipt: result.receipt,
+      statusMessage: `Paid ${formatMoney(result.order.total)}${
+        result.change > 0 ? ` · Change ${formatMoney(result.change)}` : ""
+      }${kitchenNote}`,
+    });
+
+    return { ok: true, receipt: result.receipt };
+  },
+
+  openCashDrawer: (reason) => {
+    const denied = assertCan(useAuthStore.getState().user?.role, "open_drawer");
+    if (!denied.ok) return denied;
+
+    const result = useOpsStore.getState().recordNoSale(reason);
+    if (!result.ok) return result;
+
+    set({
+      statusMessage: "No sale recorded — drawer open logged",
+    });
+    return { ok: true };
+  },
+
+  recordPettyCash: (amount, reason) => {
+    const denied = assertCan(useAuthStore.getState().user?.role, "adjust_float");
+    if (!denied.ok) return denied;
+
+    const result = useOpsStore.getState().recordPettyCash(amount, reason);
+    if (!result.ok) return result;
+
+    set({
+      statusMessage: `Petty cash ${formatMoney(amount)} recorded`,
     });
     return { ok: true };
   },
 
   adjustFloat: (amount) => {
-    if (!(amount >= 0)) return { ok: false, error: "Enter a valid float." };
+    const result = useOpsStore.getState().adjustFloat(amount);
+    if (!result.ok) return result;
+
     set({
-      floatAmount: Math.round(amount * 100) / 100,
-      statusMessage: `Float set to £${amount.toFixed(2)}`,
+      statusMessage: `Float set to ${formatMoney(amount)}`,
     });
     return { ok: true };
   },
@@ -532,13 +723,26 @@ export const usePosStore = create<PosState>((set, get) => ({
 
     const receipt =
       state.lines.length > 0
-        ? buildReceipt(state)
+        ? buildLocalReceipt(state)
         : (state.lastReceipt as string);
+
+    const printed = printReceiptText(receipt);
 
     set({
       lastReceipt: receipt,
-      statusMessage: "Receipt sent to printer",
+      statusMessage: printed
+        ? "Receipt sent to printer"
+        : "Receipt ready — allow pop-ups to print, or use Print again",
     });
-    return { ok: true, receipt };
+    return { ok: true, receipt, printed };
   },
 }));
+
+/** Selectors that read live ops data (for components still expecting POS lists). */
+export function selectHeldOrders() {
+  return useOpsStore.getState().getHeldOrders().map(toHeldOrder);
+}
+
+export function selectFloatAmount() {
+  return useOpsStore.getState().floatAmount;
+}

@@ -1,16 +1,17 @@
 "use client";
 
 import { formatMoney } from "@/lib/format";
-import { SERVICE_RATE } from "@/lib/mock-data";
 import { computeTotals } from "@/lib/order-math";
 import { usePosStore } from "@/store/pos-store";
-
-const servicePercent = Math.round(SERVICE_RATE * 100);
+import { useSettingsStore } from "@/store/settings-store";
 
 export function OrderTotals() {
   const lines = usePosStore((state) => state.lines);
   const serviceEnabled = usePosStore((state) => state.serviceEnabled);
   const toggleService = usePosStore((state) => state.toggleService);
+  const serviceRate = useSettingsStore((state) => state.serviceRate);
+  const taxInclusive = useSettingsStore((state) => state.taxInclusive);
+  const servicePercent = Math.round(serviceRate * 100);
   const totals = computeTotals(lines, serviceEnabled);
 
   return (
@@ -44,11 +45,11 @@ export function OrderTotals() {
               aria-label={`Service charge ${servicePercent} percent`}
               onClick={toggleService}
               className={`relative h-4 w-7 shrink-0 rounded-full transition ${
-                serviceEnabled ? "bg-[var(--pos-selected)]" : "bg-slate-300"
+                serviceEnabled ? "bg-[var(--pos-header)]" : "bg-slate-300"
               }`}
             >
               <span
-                className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition ${
+                className={`absolute top-0.5 h-3 w-3 rounded-full bg-[#fff] shadow transition ${
                   serviceEnabled ? "left-3.5" : "left-0.5"
                 }`}
               />
@@ -73,7 +74,7 @@ export function OrderTotals() {
           Due {formatMoney(totals.due)}
         </p>
         <p className="text-xs font-medium text-slate-700">
-          Tax {formatMoney(totals.tax)}
+          {taxInclusive ? "VAT incl." : "VAT"} {formatMoney(totals.tax)}
         </p>
       </div>
     </div>

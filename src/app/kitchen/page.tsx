@@ -5,7 +5,7 @@ import { KitchenScreen } from "@/components/modules/KitchenScreen";
 
 export default function KitchenPage() {
   return (
-    <RequireAuth>
+    <RequireAuth permission="access_kitchen">
       <KitchenScreen />
     </RequireAuth>
   );

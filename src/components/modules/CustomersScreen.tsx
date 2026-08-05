@@ -1,21 +1,31 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
+import {
+  CustomerFormFields,
+  isPlaceholderEmail,
+  isPlaceholderPhone,
+} from "@/components/customers/CustomerFormFields";
 import { ModuleShell } from "@/components/modules/ModuleShell";
 import { PosDialog } from "@/components/pos/PosDialog";
 import { useCustomerStore } from "@/store/customer-store";
 import { usePosStore } from "@/store/pos-store";
 
+const PAGE_SIZE = 10;
+
 export function CustomersScreen() {
   const customers = useCustomerStore((state) => state.customers);
   const addCustomer = useCustomerStore((state) => state.addCustomer);
+  const updateCustomer = useCustomerStore((state) => state.updateCustomer);
   const attachCustomer = usePosStore((state) => state.attachCustomer);
   const attachedId = usePosStore((state) => state.customerId);
 
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState(customers[0]?.id ?? "");
-  const [addOpen, setAddOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -33,46 +43,112 @@ export function CustomersScreen() {
     );
   }, [customers, query]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+  const rangeStart = filtered.length === 0 ? 0 : pageStart + 1;
+  const rangeEnd = Math.min(pageStart + PAGE_SIZE, filtered.length);
+
   const selected =
     filtered.find((customer) => customer.id === selectedId) ??
     filtered[0] ??
     null;
 
+  const isEditing = editingId !== null;
+  const phoneLabel = selected && !isPlaceholderPhone(selected.phone)
+    ? selected.phone
+    : null;
+  const emailLabel = selected && !isPlaceholderEmail(selected.email)
+    ? selected.email
+    : null;
+
+  function resetForm() {
+    setError("");
+    setName("");
+    setEmail("");
+    setPhone("");
+    setNotes("");
+  }
+
+  function openAdd() {
+    resetForm();
+    setEditingId(null);
+    setEditorOpen(true);
+  }
+
+  function openEdit() {
+    if (!selected) return;
+    setError("");
+    setName(selected.name);
+    setEmail(isPlaceholderEmail(selected.email) ? "" : selected.email);
+    setPhone(isPlaceholderPhone(selected.phone) ? "" : selected.phone);
+    setNotes(selected.notes ?? "");
+    setEditingId(selected.id);
+    setEditorOpen(true);
+  }
+
+  function saveCustomer() {
+    const result = isEditing
+      ? updateCustomer(editingId, { name, email, phone, notes })
+      : addCustomer({ name, email, phone, notes });
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
+    const nextId = result.customer.id;
+    setSelectedId(nextId);
+    setEditorOpen(false);
+
+    const q = query.trim().toLowerCase();
+    const nextList = useCustomerStore.getState().customers.filter(
+      (customer) =>
+        !q ||
+        customer.name.toLowerCase().includes(q) ||
+        customer.email.toLowerCase().includes(q) ||
+        customer.phone.includes(q),
+    );
+    const index = nextList.findIndex((customer) => customer.id === nextId);
+    if (index >= 0) setPage(Math.floor(index / PAGE_SIZE) + 1);
+  }
+
   return (
-    <ModuleShell
-      title="Customers"
-      subtitle="Look up guests, add new customers, and attach loyalty"
-      actions={
+    <ModuleShell title="Customers">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+            }}
+            placeholder="Search name, email, or phone"
+            className="min-h-11 w-full rounded-md border border-slate-300 bg-white py-2 pl-10 pr-3 text-sm outline-none ring-[var(--pos-accent)] focus:ring-2"
+          />
+        </div>
         <button
           type="button"
-          onClick={() => {
-            setError("");
-            setName("");
-            setEmail("");
-            setPhone("");
-            setNotes("");
-            setAddOpen(true);
-          }}
-          className="inline-flex min-h-10 items-center gap-1.5 rounded-md bg-[var(--pos-header)] px-3 text-sm font-semibold text-white"
+          onClick={openAdd}
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-md bg-[var(--pos-header)] px-4 text-sm font-semibold text-pos-on-header hover:brightness-110"
         >
           <Plus className="h-4 w-4" />
           Add customer
         </button>
-      }
-    >
-      <div className="relative mb-4">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search name, email, or phone"
-          className="min-h-11 w-full rounded-md border border-slate-300 bg-white py-2 pl-10 pr-3 text-sm outline-none ring-[var(--pos-accent)] focus:ring-2"
-        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-2">
-          {filtered.map((customer) => (
+          {filtered.length > 0 ? (
+            <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <span>Name</span>
+              <span>Phone</span>
+              <span className="text-right">Points</span>
+            </div>
+          ) : null}
+          {pageItems.map((customer) => (
             <button
               key={customer.id}
               type="button"
@@ -83,12 +159,14 @@ export function CustomersScreen() {
                   : "border-slate-200 bg-white hover:border-slate-300"
               }`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-bold">{customer.name}</p>
-                  <p className="text-sm text-slate-500">{customer.phone}</p>
-                </div>
-                <p className="text-sm font-semibold text-[var(--pos-accent)]">
+              <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto] items-center gap-3">
+                <p className="truncate font-bold">{customer.name}</p>
+                <p className="truncate text-sm text-slate-500">
+                  {isPlaceholderPhone(customer.phone)
+                    ? "No phone"
+                    : customer.phone}
+                </p>
+                <p className="text-right text-sm font-semibold text-[var(--pos-accent)] tabular-nums">
                   {customer.loyaltyPoints} pts
                 </p>
               </div>
@@ -96,8 +174,42 @@ export function CustomersScreen() {
           ))}
           {filtered.length === 0 ? (
             <p className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-500">
-              No customers match that search.
+              {customers.length === 0
+                ? "No customers yet. Add your first guest."
+                : "No customers match that search."}
             </p>
+          ) : null}
+          {filtered.length > 0 ? (
+            <div className="flex items-center justify-between gap-3 px-1 pt-1">
+              <p className="text-sm text-slate-500">
+                {rangeStart}–{rangeEnd} of {filtered.length}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage((value) => Math.max(1, value - 1))}
+                  className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="min-w-16 px-2 text-center text-sm font-medium text-slate-600 tabular-nums">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={currentPage >= totalPages}
+                  onClick={() =>
+                    setPage((value) => Math.min(totalPages, value + 1))
+                  }
+                  className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
           ) : null}
         </div>
 
@@ -107,7 +219,13 @@ export function CustomersScreen() {
               <p className="font-[family-name:var(--font-display)] text-2xl font-bold">
                 {selected.name}
               </p>
-              <p className="mt-1 text-sm text-slate-500">{selected.email}</p>
+              <div className="mt-1 space-y-0.5 text-sm text-slate-500">
+                {phoneLabel ? <p>{phoneLabel}</p> : null}
+                {emailLabel ? <p>{emailLabel}</p> : null}
+                {!phoneLabel && !emailLabel ? (
+                  <p>No contact details</p>
+                ) : null}
+              </div>
               <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-md bg-slate-50 p-3">
                   <dt className="text-slate-500">Visits</dt>
@@ -138,11 +256,18 @@ export function CustomersScreen() {
                       : { id: selected.id, name: selected.name },
                   )
                 }
-                className="mt-5 min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-white hover:brightness-110"
+                className="mt-5 min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-pos-on-header hover:brightness-110"
               >
                 {attachedId === selected.id
                   ? "Attached to ticket"
                   : "Attach to current ticket"}
+              </button>
+              <button
+                type="button"
+                onClick={openEdit}
+                className="mt-2 min-h-11 w-full rounded-md border border-slate-300 text-sm font-semibold hover:bg-slate-50"
+              >
+                Edit profile
               </button>
             </>
           ) : (
@@ -154,64 +279,31 @@ export function CustomersScreen() {
       </div>
 
       <PosDialog
-        open={addOpen}
-        title="Add customer"
-        onClose={() => setAddOpen(false)}
+        open={editorOpen}
+        title={isEditing ? "Edit customer" : "Add customer"}
+        onClose={() => setEditorOpen(false)}
         footer={
           <button
             type="button"
-            onClick={() => {
-              const result = addCustomer({ name, email, phone, notes });
-              if (!result.ok) {
-                setError(result.error);
-                return;
-              }
-              setSelectedId(result.customer.id);
-              setAddOpen(false);
-            }}
-            className="min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-white"
+            onClick={saveCustomer}
+            className="min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-pos-on-header"
           >
-            Save customer
+            {isEditing ? "Save changes" : "Save customer"}
           </button>
         }
       >
-        <div className="space-y-3">
-          <label className="block text-sm font-semibold">
-            Name *
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 text-sm outline-none ring-[var(--pos-accent)] focus:ring-2"
-              autoFocus
-            />
-          </label>
-          <label className="block text-sm font-semibold">
-            Phone
-            <input
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 text-sm outline-none ring-[var(--pos-accent)] focus:ring-2"
-            />
-          </label>
-          <label className="block text-sm font-semibold">
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 text-sm outline-none ring-[var(--pos-accent)] focus:ring-2"
-            />
-          </label>
-          <label className="block text-sm font-semibold">
-            Notes
-            <input
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 text-sm outline-none ring-[var(--pos-accent)] focus:ring-2"
-            />
-          </label>
-          {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-        </div>
+        <CustomerFormFields
+          name={name}
+          email={email}
+          phone={phone}
+          notes={notes}
+          error={error}
+          onNameChange={setName}
+          onEmailChange={setEmail}
+          onPhoneChange={setPhone}
+          onNotesChange={setNotes}
+          onSubmit={saveCustomer}
+        />
       </PosDialog>
     </ModuleShell>
   );

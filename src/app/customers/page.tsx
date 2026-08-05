@@ -5,7 +5,7 @@ import { CustomersScreen } from "@/components/modules/CustomersScreen";
 
 export default function CustomersPage() {
   return (
-    <RequireAuth>
+    <RequireAuth permission="access_customers">
       <CustomersScreen />
     </RequireAuth>
   );

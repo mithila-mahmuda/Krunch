@@ -40,7 +40,7 @@ export function PosDialog({
     <div className="fixed inset-0 z-[70] flex items-end justify-center p-3 sm:items-center">
       <button
         type="button"
-        className="absolute inset-0 bg-black/50"
+        className="pos-dialog-backdrop absolute inset-0"
         aria-label="Close dialog"
         onClick={onClose}
       />
@@ -48,7 +48,7 @@ export function PosDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative z-10 flex max-h-[min(90dvh,640px)] w-full max-w-md flex-col overflow-hidden rounded-xl bg-white text-slate-900 shadow-2xl"
+        className="pos-dialog relative z-10 flex max-h-[min(92dvh,820px)] w-full max-w-md flex-col overflow-hidden rounded-xl"
       >
         <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
           <h2

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useId, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LoaderCircle } from "lucide-react";
+import { homePathForRole } from "@/lib/permissions";
 import { useAuthStore } from "@/store/auth-store";
 
 const fieldClassName =
@@ -35,7 +36,7 @@ export function SignupForm() {
     if (error) setError(null);
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
 
@@ -46,7 +47,7 @@ export function SignupForm() {
 
     setIsSubmitting(true);
 
-    const result = signUp({
+    const result = await signUp({
       restaurantName,
       ownerName,
       email,
@@ -60,7 +61,7 @@ export function SignupForm() {
       return;
     }
 
-    router.replace("/pos");
+    router.replace(homePathForRole(useAuthStore.getState().user?.role));
   }
 
   return (

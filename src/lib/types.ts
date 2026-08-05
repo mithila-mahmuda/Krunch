@@ -4,6 +4,10 @@ export type DiningOption = "eat_in" | "takeaway" | "delivery";
 
 export type SidebarTab = "menu" | "customers" | "orders" | "tables";
 
+export type TicketStatus = "open" | "preparing" | "ready" | "paid" | "void";
+export type KitchenStatus = "queued" | "preparing" | "ready" | "served";
+export type TableStatus = "free" | "seated" | "ordered" | "bill";
+
 export interface Category {
   id: string;
   name: string;
@@ -12,6 +16,8 @@ export interface Category {
 
 export interface Product {
   id: string;
+  /** Owning restaurant (tenant). */
+  restaurantId?: string;
   categoryId: string;
   name: string;
   price: number;
@@ -71,10 +77,72 @@ export interface CompletedOrder {
   server: string;
 }
 
-export interface TenderResult {
+/** Single source of truth for Orders + Kitchen + table tabs. */
+export interface OpsOrder {
+  id: string;
+  /** Owning restaurant (tenant). */
+  restaurantId?: string;
+  number: string;
+  lines: OrderLine[];
+  diningOption: DiningOption;
+  serviceEnabled: boolean;
+  customerId: string | null;
+  customerName: string | null;
+  tableId: string | null;
+  tableLabel: string | null;
+  status: TicketStatus;
+  kitchenStatus: KitchenStatus | null;
+  kitchenNotes?: string;
+  /** ISO timestamp when the ticket was fired to kitchen; drives the live KDS clock. */
+  kitchenStartedAt: string | null;
+  /** Legacy whole-minute offset; kept for persisted rows without kitchenStartedAt. */
+  kitchenElapsedMinutes: number;
+  server: string;
+  placedAt: string;
+  paidAt?: string;
+  method?: "cash" | "card";
+  receipt?: string;
+  total: number;
+  /** Demo seed rows — optional display; live till rows have source "till". */
+  source: "till" | "demo";
+  /** Which location / POS station took the order (live till rows). */
+  branchId?: string;
+  branchName?: string;
+  tillId?: string;
+  tillName?: string;
+  inventoryDeducted: boolean;
+  held: boolean;
+}
+
+export interface PaymentResult {
   method: "cash" | "card";
-  amountTendered: number;
+  amountPaid: number;
   change: number;
+}
+
+/** Till cash-drawer audit trail (no-sale, petty cash, float, cash sales). */
+export type CashEventType =
+  | "no_sale"
+  | "petty_cash"
+  | "float_adjust"
+  | "cash_sale";
+
+export interface CashDrawerEvent {
+  id: string;
+  /** Owning restaurant (tenant). */
+  restaurantId?: string;
+  type: CashEventType;
+  /** Monetary value for the event (0 for no-sale). */
+  amount: number;
+  reason: string;
+  staffName: string;
+  createdAt: string;
+  floatAfter: number;
+  orderNumber?: string;
+  branchId?: string;
+  branchName?: string;
+  tillId?: string;
+  tillName?: string;
 }
 
 export interface OrderTotals {

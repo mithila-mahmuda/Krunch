@@ -2,14 +2,20 @@
 
 import { useMemo, useState } from "react";
 import { formatMoney } from "@/lib/format";
-import { categories, products } from "@/lib/mock-data";
+import { categories } from "@/lib/mock-data";
+import { can } from "@/lib/permissions";
 import { ModuleShell } from "@/components/modules/ModuleShell";
+import { useAuthStore } from "@/store/auth-store";
+import { useCatalogStore } from "@/store/catalog-store";
 
 export function MenuManagerScreen() {
-  const [availability, setAvailability] = useState<Record<string, boolean>>(
-    () =>
-      Object.fromEntries(products.map((product) => [product.id, true])),
+  const products = useCatalogStore((state) => state.products);
+  const toggleAvailability = useCatalogStore(
+    (state) => state.toggleAvailability,
   );
+  const role = useAuthStore((state) => state.user?.role);
+  const canEdit = can(role, "edit_menu");
+
   const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "");
   const [query, setQuery] = useState("");
 
@@ -23,24 +29,16 @@ export function MenuManagerScreen() {
         product.id.includes(q);
       return inCategory && matches;
     });
-  }, [categoryId, query]);
-
-  const unavailableCount = Object.values(availability).filter(
-    (value) => !value,
-  ).length;
-
-  function toggle(productId: string) {
-    setAvailability((current) => ({
-      ...current,
-      [productId]: !current[productId],
-    }));
-  }
+  }, [categoryId, products, query]);
 
   return (
-    <ModuleShell
-      title="Menu Manager"
-      subtitle={`${unavailableCount} item${unavailableCount === 1 ? "" : "s"} marked unavailable`}
-    >
+    <ModuleShell title="Menu Manager">
+      {!canEdit ? (
+        <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          View only — managers can change availability.
+        </p>
+      ) : null}
+
       <div className="mb-4 flex flex-col gap-3 sm:flex-row">
         <input
           value={query}
@@ -64,7 +62,7 @@ export function MenuManagerScreen() {
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <ul className="divide-y divide-slate-100">
           {visible.map((product) => {
-            const available = availability[product.id] !== false;
+            const available = product.available !== false;
             return (
               <li
                 key={product.id}
@@ -79,8 +77,9 @@ export function MenuManagerScreen() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => toggle(product.id)}
-                  className={`min-h-10 min-w-[132px] rounded-md px-3 text-sm font-semibold transition ${
+                  disabled={!canEdit}
+                  onClick={() => toggleAvailability(product.id)}
+                  className={`min-h-10 min-w-[132px] rounded-md px-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                     available
                       ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
                       : "bg-rose-100 text-rose-800 hover:bg-rose-200"

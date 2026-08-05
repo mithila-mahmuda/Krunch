@@ -1,57 +1,82 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { INITIAL_INVENTORY } from "@/lib/module-data";
+import { AssignedBranchBadge } from "@/components/AssignedBranchBadge";
+import { SearchableMultiSelect } from "@/components/SearchableMultiSelect";
 import { ModuleShell } from "@/components/modules/ModuleShell";
+import { useBranchFilter } from "@/hooks/useBranchFilter";
+import { can } from "@/lib/permissions";
+import { useAuthStore } from "@/store/auth-store";
+import { useOpsStore } from "@/store/ops-store";
 
 export function InventoryScreen() {
-  const [items, setItems] = useState(INITIAL_INVENTORY);
+  const items = useOpsStore((state) => state.inventory);
+  const adjustInventory = useOpsStore((state) => state.adjustInventory);
+  const role = useAuthStore((state) => state.user?.role);
+  const canAdjust = can(role, "adjust_inventory");
+  const {
+    options: branchOptions,
+    selectedBranchIds,
+    setSelectedBranchIds,
+    branchIds,
+    allLabel: branchAllLabel,
+    showBranchFilter,
+    branchBadgeName,
+  } = useBranchFilter();
   const [lowOnly, setLowOnly] = useState(false);
 
   const visible = useMemo(() => {
+    const scoped = items.filter((item) => branchIds.includes(item.branchId));
     const list = lowOnly
-      ? items.filter((item) => item.onHand < item.parLevel)
-      : items;
+      ? scoped.filter((item) => item.onHand < item.parLevel)
+      : scoped;
     return [...list].sort(
       (a, b) => a.onHand / a.parLevel - b.onHand / b.parLevel,
     );
-  }, [items, lowOnly]);
-
-  const lowCount = items.filter(
-    (item) => item.onHand < item.parLevel,
-  ).length;
-
-  function adjust(id: string, delta: number) {
-    setItems((current) =>
-      current.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              onHand: Math.max(0, Math.round((item.onHand + delta) * 10) / 10),
-            }
-          : item,
-      ),
-    );
-  }
+  }, [items, lowOnly, branchIds]);
 
   return (
     <ModuleShell
       title="Inventory"
-      subtitle={`${lowCount} item${lowCount === 1 ? "" : "s"} below par`}
-      actions={
+      titleAddon={
+        branchBadgeName ? (
+          <AssignedBranchBadge name={branchBadgeName} />
+        ) : null
+      }
+    >
+      {!canAdjust ? (
+        <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          View only — cashiers and managers can adjust stock.
+        </p>
+      ) : null}
+
+      <div className="mb-3 flex flex-wrap items-end gap-2">
+        {showBranchFilter ? (
+          <div className="max-w-xs min-w-[12rem] flex-1">
+            <SearchableMultiSelect
+              compact
+              label="Branch"
+              options={branchOptions}
+              values={selectedBranchIds}
+              onChange={setSelectedBranchIds}
+              allLabel={branchAllLabel}
+              searchPlaceholder="Search branches…"
+            />
+          </div>
+        ) : null}
         <button
           type="button"
           onClick={() => setLowOnly((value) => !value)}
-          className={`min-h-10 rounded-md px-3 text-sm font-semibold ${
+          className={`min-h-10 shrink-0 rounded-md border px-3 text-sm font-semibold ${
             lowOnly
-              ? "bg-rose-600 text-white"
-              : "border border-slate-300 bg-white hover:bg-slate-50"
+              ? "border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100"
+              : "border-slate-300 text-slate-700 hover:bg-slate-50"
           }`}
         >
           {lowOnly ? "Showing low stock" : "Low stock only"}
         </button>
-      }
-    >
+      </div>
+
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <ul className="divide-y divide-slate-100">
           {visible.map((item) => {
@@ -86,8 +111,9 @@ export function InventoryScreen() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => adjust(item.id, -1)}
-                    className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 font-bold hover:bg-slate-50"
+                    disabled={!canAdjust}
+                    onClick={() => adjustInventory(item.id, -1)}
+                    className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 font-bold hover:bg-slate-50 disabled:opacity-40"
                     aria-label={`Decrease ${item.name}`}
                   >
                     −
@@ -97,8 +123,9 @@ export function InventoryScreen() {
                   </p>
                   <button
                     type="button"
-                    onClick={() => adjust(item.id, 1)}
-                    className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 font-bold hover:bg-slate-50"
+                    disabled={!canAdjust}
+                    onClick={() => adjustInventory(item.id, 1)}
+                    className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 font-bold hover:bg-slate-50 disabled:opacity-40"
                     aria-label={`Increase ${item.name}`}
                   >
                     +

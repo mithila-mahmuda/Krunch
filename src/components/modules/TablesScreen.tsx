@@ -1,13 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { formatMoney } from "@/lib/format";
-import {
-  INITIAL_TABLES,
-  type FloorTable,
-  type TableStatus,
-} from "@/lib/module-data";
+import { useRouter } from "next/navigation";
+import { AssignedBranchBadge } from "@/components/AssignedBranchBadge";
+import { SearchableMultiSelect } from "@/components/SearchableMultiSelect";
 import { ModuleShell } from "@/components/modules/ModuleShell";
+import { useBranchFilter } from "@/hooks/useBranchFilter";
+import { formatMoney } from "@/lib/format";
+import type { FloorTable, TableStatus } from "@/lib/module-data";
+import { useOpsStore } from "@/store/ops-store";
+import { usePosStore } from "@/store/pos-store";
 
 const statusTone: Record<TableStatus, string> = {
   free: "bg-emerald-50 border-emerald-200 text-emerald-900",
@@ -16,82 +18,121 @@ const statusTone: Record<TableStatus, string> = {
   bill: "bg-violet-50 border-violet-200 text-violet-950",
 };
 
-const nextStatus: Record<TableStatus, TableStatus> = {
-  free: "seated",
-  seated: "ordered",
-  ordered: "bill",
-  bill: "free",
-};
-
 export function TablesScreen() {
-  const [tables, setTables] = useState(INITIAL_TABLES);
-  const [selectedId, setSelectedId] = useState<string | null>("t4");
+  const router = useRouter();
+  const tables = useOpsStore((state) => state.tables);
+  const seatTable = useOpsStore((state) => state.seatTable);
+  const setTableBill = useOpsStore((state) => state.setTableBill);
+  const freeTable = useOpsStore((state) => state.freeTable);
+  const loadTableTab = usePosStore((state) => state.loadTableTab);
+  const setStatusMessage = usePosStore((state) => state.setStatusMessage);
+  const {
+    options: branchOptions,
+    selectedBranchIds,
+    setSelectedBranchIds,
+    branchIds,
+    allLabel: branchAllLabel,
+    showBranchFilter,
+    branchBadgeName,
+  } = useBranchFilter();
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zone, setZone] = useState<"All" | FloorTable["zone"]>("All");
+  const [message, setMessage] = useState("");
+
+  const scopedTables = useMemo(
+    () => tables.filter((table) => branchIds.includes(table.branchId)),
+    [tables, branchIds],
+  );
 
   const visible = useMemo(
     () =>
-      zone === "All" ? tables : tables.filter((table) => table.zone === zone),
-    [tables, zone],
+      zone === "All"
+        ? scopedTables
+        : scopedTables.filter((table) => table.zone === zone),
+    [scopedTables, zone],
   );
 
-  const selected = tables.find((table) => table.id === selectedId) ?? null;
+  const resolvedSelectedId =
+    selectedId && visible.some((table) => table.id === selectedId)
+      ? selectedId
+      : (visible[0]?.id ?? null);
 
-  function cycleStatus(tableId: string) {
-    setTables((current) =>
-      current.map((table) => {
-        if (table.id !== tableId) return table;
-        const status = nextStatus[table.status];
-        if (status === "free") {
-          return {
-            ...table,
-            status,
-            guestCount: undefined,
-            openTotal: undefined,
-            server: undefined,
-          };
-        }
-        if (status === "seated") {
-          return {
-            ...table,
-            status,
-            guestCount: table.guestCount ?? Math.min(2, table.seats),
-            server: table.server ?? "Maya",
-            openTotal: undefined,
-          };
-        }
-        if (status === "ordered") {
-          return {
-            ...table,
-            status,
-            openTotal: table.openTotal ?? 12.5,
-          };
-        }
-        return { ...table, status };
-      }),
-    );
+  const selected =
+    tables.find((table) => table.id === resolvedSelectedId) ?? null;
+
+  function advanceTable(table: FloorTable) {
+    if (table.status === "free") {
+      seatTable(table.id);
+      return;
+    }
+    if (table.status === "seated") {
+      setMessage("Assign items on the till, then Send to kitchen or Hold.");
+      return;
+    }
+    if (table.status === "ordered") {
+      setTableBill(table.id);
+      return;
+    }
+    freeTable(table.id);
+  }
+
+  function openOnTill(table: FloorTable) {
+    const result = loadTableTab(table.id);
+    if (!result.ok) {
+      setMessage(result.error);
+      setStatusMessage(result.error);
+      return;
+    }
+    router.push("/pos");
   }
 
   return (
     <ModuleShell
       title="Tabs & Tables"
-      subtitle="Floor overview — tap a table to manage its tab"
+      titleAddon={
+        branchBadgeName ? (
+          <AssignedBranchBadge name={branchBadgeName} />
+        ) : null
+      }
     >
-      <div className="mb-4 flex flex-wrap gap-2">
-        {(["All", "Main", "Patio", "Bar"] as const).map((item) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => setZone(item)}
-            className={`min-h-10 rounded-md px-3 text-sm font-semibold ${
-              zone === item
-                ? "bg-[var(--pos-header)] text-white"
-                : "border border-slate-300 bg-white hover:bg-slate-50"
-            }`}
-          >
-            {item}
-          </button>
-        ))}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2">
+          {(["All", "Main", "Patio", "Bar"] as const).map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setZone(item)}
+              className={`min-h-10 rounded-md px-3 text-sm font-semibold ${
+                zone === item
+                  ? "bg-[var(--pos-header)] text-pos-on-header"
+                  : "border border-slate-300 bg-white hover:bg-slate-50"
+              }`}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+        {showBranchFilter ? (
+          <div className="w-full max-w-xs sm:w-56">
+            <SearchableMultiSelect
+              compact
+              label="Branch"
+              options={branchOptions}
+              values={selectedBranchIds}
+              onChange={setSelectedBranchIds}
+              allLabel={branchAllLabel}
+              searchPlaceholder="Search branches…"
+            />
+          </div>
+        ) : null}
       </div>
+
+      {message ? (
+        <p className="mb-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">
+          {message}
+        </p>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
@@ -99,7 +140,10 @@ export function TablesScreen() {
             <button
               key={table.id}
               type="button"
-              onClick={() => setSelectedId(table.id)}
+              onClick={() => {
+                setSelectedId(table.id);
+                setMessage("");
+              }}
               className={`min-h-[96px] rounded-lg border-2 px-3 py-3 text-left transition ${
                 statusTone[table.status]
               } ${
@@ -158,10 +202,23 @@ export function TablesScreen() {
               </dl>
               <button
                 type="button"
-                onClick={() => cycleStatus(selected.id)}
-                className="mt-5 min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-white hover:brightness-110"
+                onClick={() => openOnTill(selected)}
+                className="mt-5 min-h-11 w-full rounded-md bg-[var(--action-pay)] text-sm font-semibold text-white hover:brightness-110"
               >
-                Advance to {nextStatus[selected.status]}
+                Open on till
+              </button>
+              <button
+                type="button"
+                onClick={() => advanceTable(selected)}
+                className="mt-2 min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-pos-on-header hover:brightness-110"
+              >
+                {selected.status === "free"
+                  ? "Seat guests"
+                  : selected.status === "seated"
+                    ? "Need order on till"
+                    : selected.status === "ordered"
+                      ? "Move to bill"
+                      : "Clear table"}
               </button>
             </>
           ) : (

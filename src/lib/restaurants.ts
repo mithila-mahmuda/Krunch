@@ -1,4 +1,12 @@
-import { DEMO_STAFF } from "@/lib/staff";
+"use client";
+
+import {
+  loadAllStaffUsers,
+  loadRestaurantAccounts,
+  saveRestaurantAccounts,
+  type RestaurantAccountRow,
+} from "@/lib/db/repos";
+import { queueDbWrite } from "@/lib/db/write";
 
 export interface RestaurantAccount {
   id: string;
@@ -10,32 +18,50 @@ export interface RestaurantAccount {
   createdAt: string;
 }
 
-const STORAGE_KEY = "krunch-restaurants";
+let cachedAccounts: RestaurantAccount[] = [];
+let cacheReady = false;
+
+export async function hydrateRestaurantAccounts(): Promise<void> {
+  const rows = await loadRestaurantAccounts();
+  cachedAccounts = rows.map(toAccount);
+  cacheReady = true;
+}
 
 export function readRestaurantAccounts(): RestaurantAccount[] {
-  if (typeof window === "undefined") return [];
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as RestaurantAccount[];
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (account) =>
-        account?.id &&
-        account?.restaurantName &&
-        account?.ownerName &&
-        account?.email &&
-        account?.contactNumber &&
-        account?.password,
-    );
-  } catch {
-    return [];
-  }
+  return cacheReady ? cachedAccounts : [];
 }
 
 function writeRestaurantAccounts(accounts: RestaurantAccount[]) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+  cachedAccounts = accounts;
+  cacheReady = true;
+  queueDbWrite(
+    () => saveRestaurantAccounts(accounts.map(toRow)),
+    "save restaurants",
+  );
+}
+
+function toAccount(row: RestaurantAccountRow): RestaurantAccount {
+  return {
+    id: row.id,
+    restaurantName: row.restaurantName,
+    ownerName: row.ownerName,
+    email: row.email,
+    contactNumber: row.contactNumber,
+    password: row.password,
+    createdAt: row.createdAt,
+  };
+}
+
+function toRow(account: RestaurantAccount): RestaurantAccountRow {
+  return {
+    id: account.id,
+    restaurantName: account.restaurantName,
+    ownerName: account.ownerName,
+    email: account.email,
+    contactNumber: account.contactNumber,
+    password: account.password,
+    createdAt: account.createdAt,
+  };
 }
 
 export function findRestaurantByEmail(email: string): RestaurantAccount | null {
@@ -56,13 +82,15 @@ export function findRestaurantByCredentials(
   return account;
 }
 
-export function createRestaurantAccount(input: {
+export async function createRestaurantAccount(input: {
   restaurantName: string;
   ownerName: string;
   email: string;
   contactNumber: string;
   password: string;
-}): { ok: true; account: RestaurantAccount } | { ok: false; error: string } {
+}): Promise<
+  { ok: true; account: RestaurantAccount } | { ok: false; error: string }
+> {
   const restaurantName = input.restaurantName.trim();
   const ownerName = input.ownerName.trim();
   const email = input.email.trim().toLowerCase();
@@ -90,7 +118,10 @@ export function createRestaurantAccount(input: {
     return { ok: false, error: "Password must be at least 6 characters." };
   }
 
-  const emailTakenByStaff = DEMO_STAFF.some((staff) => staff.email === email);
+  const allStaff = await loadAllStaffUsers();
+  const emailTakenByStaff = allStaff.some(
+    (staff) => !staff.archived && staff.email === email,
+  );
   if (emailTakenByStaff || findRestaurantByEmail(email)) {
     return {
       ok: false,
@@ -108,7 +139,6 @@ export function createRestaurantAccount(input: {
     createdAt: new Date().toISOString(),
   };
 
-  const accounts = readRestaurantAccounts();
-  writeRestaurantAccounts([...accounts, account]);
+  writeRestaurantAccounts([...readRestaurantAccounts(), account]);
   return { ok: true, account };
 }

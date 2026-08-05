@@ -5,7 +5,7 @@ import { InventoryScreen } from "@/components/modules/InventoryScreen";
 
 export default function InventoryPage() {
   return (
-    <RequireAuth>
+    <RequireAuth permission="access_inventory">
       <InventoryScreen />
     </RequireAuth>
   );

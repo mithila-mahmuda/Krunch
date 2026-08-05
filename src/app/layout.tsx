@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans, Outfit } from "next/font/google";
+import Script from "next/script";
+import { StoreHydrator } from "@/components/StoreHydrator";
+import { APPEARANCE_BOOTSTRAP } from "@/lib/appearance";
 import "./globals.css";
 
 const body = IBM_Plex_Sans({
@@ -32,8 +35,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${body.variable} ${display.variable} h-full`}>
-      <body className="min-h-full antialiased">{children}</body>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${body.variable} ${display.variable} h-full`}
+    >
+      <body className="min-h-full antialiased">
+        <Script
+          id="krunch-appearance"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOTSTRAP }}
+        />
+        <StoreHydrator />
+        {children}
+      </body>
     </html>
   );
 }

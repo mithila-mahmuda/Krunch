@@ -5,7 +5,7 @@ import { SettingsScreen } from "@/components/modules/SettingsScreen";
 
 export default function SettingsPage() {
   return (
-    <RequireAuth>
+    <RequireAuth permission="access_settings">
       <SettingsScreen />
     </RequireAuth>
   );

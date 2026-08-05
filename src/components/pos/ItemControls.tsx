@@ -2,9 +2,11 @@
 
 import { useState, type ReactNode } from "react";
 import { Minus, Pencil, Plus, Tag, X } from "lucide-react";
-import { formatMoney } from "@/lib/format";
+import { activeCurrencySymbol, formatMoney } from "@/lib/format";
+import { can } from "@/lib/permissions";
 import type { OrderLine } from "@/lib/types";
 import { PosDialog } from "@/components/pos/PosDialog";
+import { useAuthStore } from "@/store/auth-store";
 import { usePosStore } from "@/store/pos-store";
 
 /** Shared with OrderLineList so qty digits line up (near prices, not row center). */
@@ -18,6 +20,8 @@ export function SelectedLineToolbar({ line }: { line: OrderLine }) {
   const removeLine = usePosStore((state) => state.removeLine);
   const setLineNote = usePosStore((state) => state.setLineNote);
   const applyLineDiscount = usePosStore((state) => state.applyLineDiscount);
+  const setStatusMessage = usePosStore((state) => state.setStatusMessage);
+  const role = useAuthStore((state) => state.user?.role);
 
   const [noteOpen, setNoteOpen] = useState(false);
   const [discountOpen, setDiscountOpen] = useState(false);
@@ -41,6 +45,10 @@ export function SelectedLineToolbar({ line }: { line: OrderLine }) {
   })();
 
   function openDiscount() {
+    if (!can(role, "apply_discount")) {
+      setStatusMessage("Your role cannot apply discounts.");
+      return;
+    }
     if (line.manualDiscountAmount > 0 && lineTotal > 0) {
       const asPercent =
         Math.round((line.manualDiscountAmount / lineTotal) * 1000) / 10;
@@ -150,7 +158,7 @@ export function SelectedLineToolbar({ line }: { line: OrderLine }) {
                 setLineNote(line.id, noteValue);
                 setNoteOpen(false);
               }}
-              className="min-h-11 rounded-md bg-[var(--pos-header)] text-sm font-semibold text-white hover:brightness-110"
+              className="min-h-11 rounded-md bg-[var(--pos-header)] text-sm font-semibold text-pos-on-header hover:brightness-110"
             >
               Save note
             </button>
@@ -189,7 +197,7 @@ export function SelectedLineToolbar({ line }: { line: OrderLine }) {
             <button
               type="button"
               onClick={applyDiscount}
-              className="min-h-11 rounded-md bg-[var(--pos-header)] text-sm font-semibold text-white hover:brightness-110"
+              className="min-h-11 rounded-md bg-[var(--pos-header)] text-sm font-semibold text-pos-on-header hover:brightness-110"
             >
               Apply
             </button>
@@ -210,11 +218,11 @@ export function SelectedLineToolbar({ line }: { line: OrderLine }) {
             }}
             className={`min-h-10 rounded-md text-sm font-semibold ${
               discountMode === "amount"
-                ? "bg-[var(--pos-header)] text-white"
+                ? "bg-[var(--pos-header)] text-pos-on-header"
                 : "border border-slate-300 hover:bg-slate-50"
             }`}
           >
-            £ Amount
+            {activeCurrencySymbol()} Amount
           </button>
           <button
             type="button"
@@ -224,7 +232,7 @@ export function SelectedLineToolbar({ line }: { line: OrderLine }) {
             }}
             className={`min-h-10 rounded-md text-sm font-semibold ${
               discountMode === "percent"
-                ? "bg-[var(--pos-header)] text-white"
+                ? "bg-[var(--pos-header)] text-pos-on-header"
                 : "border border-slate-300 hover:bg-slate-50"
             }`}
           >
@@ -233,7 +241,9 @@ export function SelectedLineToolbar({ line }: { line: OrderLine }) {
         </div>
 
         <label className="block text-sm font-semibold">
-          {discountMode === "percent" ? "Percent (%)" : "Amount (£)"}
+          {discountMode === "percent"
+            ? "Percent (%)"
+            : `Amount (${activeCurrencySymbol()})`}
           <input
             type="number"
             min={0}
@@ -263,7 +273,9 @@ export function SelectedLineToolbar({ line }: { line: OrderLine }) {
                 }
                 className="min-h-10 rounded-md border border-slate-300 text-sm font-semibold hover:bg-slate-50"
               >
-                {discountMode === "percent" ? `${preset}%` : `£${preset}`}
+                {discountMode === "percent"
+                  ? `${preset}%`
+                  : `${activeCurrencySymbol()}${preset}`}
               </button>
             ),
           )}
@@ -303,7 +315,7 @@ function ToolbarAction({
       <span
         className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
           active
-            ? "bg-white text-[var(--pos-selected)]"
+            ? "bg-[#fff] text-[var(--pos-selected)]"
             : "bg-[var(--pos-selected-deep)] text-white group-hover:bg-white group-hover:text-[var(--pos-selected)]"
         }`}
       >

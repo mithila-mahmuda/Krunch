@@ -10,16 +10,25 @@ import {
   UtensilsCrossed,
   X,
 } from "lucide-react";
-import { formatMoney } from "@/lib/format";
-import { INITIAL_ORDERS, INITIAL_TABLES } from "@/lib/module-data";
+import {
+  diningOptionLabel,
+  formatClockTime,
+  formatMoney,
+  paymentMethodLabel,
+  titleCaseLabel,
+} from "@/lib/format";
 import type { SidebarTab } from "@/lib/types";
 import { useCustomerStore } from "@/store/customer-store";
+import { useOpsStore } from "@/store/ops-store";
 import { usePosStore } from "@/store/pos-store";
+import { useSettingsStore } from "@/store/settings-store";
+import { CustomerFormFields } from "@/components/customers/CustomerFormFields";
 import { ActionButtons } from "@/components/pos/ActionButtons";
 import { OrderLineList } from "@/components/pos/OrderLineList";
 import { OrderTotals } from "@/components/pos/OrderTotals";
 import { PosDialog } from "@/components/pos/PosDialog";
 import { UtilityButtons } from "@/components/pos/UtilityButtons";
+import { ReceiptTicket } from "@/components/receipt/ReceiptTicket";
 
 const tabs: {
   id: SidebarTab;
@@ -124,7 +133,7 @@ export function OrderSidebar() {
                 aria-label={tab.label}
                 className={`flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-bold uppercase tracking-wide transition ${
                   active
-                    ? "border-b-2 border-[var(--pos-selected)] text-[var(--pos-selected-deep)]"
+                    ? "border-b-2 border-[var(--pos-header)] bg-[var(--pos-header)]/10 text-[var(--pos-header)] dark:text-white"
                     : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
                 }`}
               >
@@ -170,7 +179,7 @@ function TicketContextBar() {
       {[
         customerName ? `Guest: ${customerName}` : null,
         tableLabel ? `Table ${tableLabel}` : null,
-        diningOption.replace("_", " "),
+        diningOptionLabel(diningOption),
       ]
         .filter(Boolean)
         .join(" · ")}
@@ -183,7 +192,7 @@ function PanelFooter({ href, label }: { href: string; label: string }) {
     <div className="shrink-0 border-t border-slate-200 p-3">
       <Link
         href={href}
-        className="flex min-h-11 items-center justify-center rounded-md bg-[var(--pos-header)] text-sm font-semibold text-white hover:brightness-110"
+        className="flex min-h-11 items-center justify-center rounded-md bg-[var(--pos-header)] text-sm font-semibold text-pos-on-header hover:brightness-110"
       >
         {label}
       </Link>
@@ -219,6 +228,20 @@ function CustomersQuickPanel() {
       .slice(0, 10);
   }, [customers, query]);
 
+  function saveAndAttach() {
+    const result = addCustomer({ name, email, phone, notes });
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    attachCustomer({
+      id: result.customer.id,
+      name: result.customer.name,
+    });
+    setAddOpen(false);
+    setActiveTab("menu");
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="shrink-0 space-y-2 border-b border-slate-100 p-3">
@@ -234,7 +257,7 @@ function CustomersQuickPanel() {
               setNotes("");
               setAddOpen(true);
             }}
-            className="inline-flex min-h-9 items-center gap-1 rounded-md bg-[var(--pos-header)] px-2.5 text-xs font-bold text-white"
+            className="inline-flex min-h-9 items-center gap-1 rounded-md bg-[var(--pos-header)] px-2.5 text-xs font-bold text-pos-on-header"
           >
             <Plus className="h-4 w-4" />
             New
@@ -296,94 +319,85 @@ function CustomersQuickPanel() {
         footer={
           <button
             type="button"
-            onClick={() => {
-              const result = addCustomer({ name, email, phone, notes });
-              if (!result.ok) {
-                setError(result.error);
-                return;
-              }
-              attachCustomer({
-                id: result.customer.id,
-                name: result.customer.name,
-              });
-              setAddOpen(false);
-              setActiveTab("menu");
-            }}
-            className="min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-white"
+            onClick={saveAndAttach}
+            className="min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-pos-on-header"
           >
             Save & attach
           </button>
         }
       >
-        <div className="space-y-3">
-          <label className="block text-sm font-semibold">
-            Name *
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 text-sm outline-none ring-[var(--pos-accent)] focus:ring-2"
-              autoFocus
-            />
-          </label>
-          <label className="block text-sm font-semibold">
-            Phone
-            <input
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 text-sm outline-none ring-[var(--pos-accent)] focus:ring-2"
-            />
-          </label>
-          <label className="block text-sm font-semibold">
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 text-sm outline-none ring-[var(--pos-accent)] focus:ring-2"
-            />
-          </label>
-          <label className="block text-sm font-semibold">
-            Notes
-            <input
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 text-sm outline-none ring-[var(--pos-accent)] focus:ring-2"
-              placeholder="Allergies, preferences"
-            />
-          </label>
-          {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-        </div>
+        <CustomerFormFields
+          name={name}
+          email={email}
+          phone={phone}
+          notes={notes}
+          error={error}
+          onNameChange={setName}
+          onEmailChange={setEmail}
+          onPhoneChange={setPhone}
+          onNotesChange={setNotes}
+          onSubmit={saveAndAttach}
+        />
       </PosDialog>
     </div>
   );
 }
 
 function OrdersQuickPanel() {
-  const heldOrders = usePosStore((state) => state.heldOrders);
-  const completedOrders = usePosStore((state) => state.completedOrders);
+  const orders = useOpsStore((state) => state.orders);
+  const showDemoSeed = useSettingsStore((state) => state.showDemoSeed);
   const recallOrder = usePosStore((state) => state.recallOrder);
+  const loadOpenOrder = usePosStore((state) => state.loadOpenOrder);
   const setStatusMessage = usePosStore((state) => state.setStatusMessage);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [receiptText, setReceiptText] = useState("");
 
-  const demoOpen = INITIAL_ORDERS.filter(
-    (order) =>
-      order.status === "open" ||
-      order.status === "preparing" ||
-      order.status === "ready",
-  ).slice(0, 4);
+  const heldOrders = useMemo(
+    () =>
+      orders.filter(
+        (order) =>
+          order.held &&
+          order.status === "open" &&
+          (showDemoSeed || order.source === "till"),
+      ),
+    [orders, showDemoSeed],
+  );
+
+  const completedOrders = useMemo(
+    () =>
+      orders
+        .filter(
+          (order) =>
+            order.status === "paid" &&
+            (showDemoSeed || order.source === "till"),
+        )
+        .slice(0, 8),
+    [orders, showDemoSeed],
+  );
+
+  const kitchenOpen = useMemo(
+    () =>
+      orders
+        .filter(
+          (order) =>
+            order.kitchenStatus != null &&
+            (showDemoSeed || order.source === "till"),
+        )
+        .slice(0, 6),
+    [orders, showDemoSeed],
+  );
 
   const hasAny =
     heldOrders.length > 0 ||
     completedOrders.length > 0 ||
-    demoOpen.length > 0;
+    kitchenOpen.length > 0;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="shrink-0 border-b border-slate-100 p-3">
         <p className="text-sm font-bold text-slate-900">Orders</p>
         <p className="text-xs text-slate-500">
-          Held layaways and completed payments
+          Held, kitchen, and completed from this till
         </p>
       </div>
       <ul className="min-h-0 flex-1 space-y-3 overflow-auto p-2">
@@ -414,9 +428,63 @@ function OrdersQuickPanel() {
                   <p className="font-bold">{formatMoney(order.total)}</p>
                 </div>
                 <p className="mt-0.5 text-xs text-slate-600">
-                  Held {order.heldAt}
+                  Held {formatClockTime(order.placedAt)}
                   {order.customerName ? ` · ${order.customerName}` : ""} · Tap
                   to recall
+                </p>
+              </button>
+            ))}
+          </li>
+        ) : null}
+
+        {kitchenOpen.length > 0 ? (
+          <li className="space-y-2">
+            <p className="px-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+              In kitchen
+            </p>
+            {kitchenOpen.map((order) => (
+              <button
+                key={order.id}
+                type="button"
+                disabled={order.status === "paid"}
+                onClick={() => {
+                  if (order.status === "paid") return;
+                  const result = loadOpenOrder(order.id);
+                  if (!result.ok) setStatusMessage(result.error);
+                }}
+                className="w-full rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-left text-sm disabled:cursor-default"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold">
+                    {order.number}
+                    {order.tableLabel ? (
+                      <span className="ml-1 text-slate-500">
+                        {order.tableLabel}
+                      </span>
+                    ) : null}
+                  </p>
+                  <p className="font-bold">{formatMoney(order.total)}</p>
+                </div>
+                <p className="mt-0.5 text-xs text-amber-900">
+                  {[
+                    order.kitchenStatus === "queued"
+                      ? "Open"
+                      : order.kitchenStatus
+                        ? titleCaseLabel(order.kitchenStatus)
+                        : order.status === "paid" || order.status === "ready"
+                          ? "Ready"
+                          : order.status === "preparing"
+                            ? "Preparing"
+                            : "Open",
+                    order.status === "paid"
+                      ? "Paid"
+                      : order.status === "void"
+                        ? "Void"
+                        : "Unpaid",
+                    order.status !== "paid" ? "Tap to open on till" : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               </button>
             ))}
@@ -433,7 +501,11 @@ function OrdersQuickPanel() {
                 key={order.id}
                 type="button"
                 onClick={() => {
-                  setReceiptText(order.receipt);
+                  setReceiptText(
+                    useOpsStore.getState().getDisplayReceipt(order.id) ??
+                      order.receipt ??
+                      "",
+                  );
                   setReceiptOpen(true);
                 }}
                 className="w-full rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-left text-sm"
@@ -449,45 +521,23 @@ function OrdersQuickPanel() {
                   </p>
                   <p className="font-bold">{formatMoney(order.total)}</p>
                 </div>
-                <p className="mt-0.5 text-xs capitalize text-emerald-800">
-                  Paid {order.paidAt} · {order.method}
-                  {order.customerName ? ` · ${order.customerName}` : ""}
+                <p className="mt-0.5 text-xs text-emerald-800">
+                  {[
+                    `Paid ${formatClockTime(order.paidAt)}`,
+                    order.method ? paymentMethodLabel(order.method) : null,
+                    order.customerName,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               </button>
             ))}
           </li>
         ) : null}
 
-        {demoOpen.length > 0 ? (
-          <li className="space-y-2">
-            <p className="px-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
-              Kitchen board
-            </p>
-            {demoOpen.map((order) => (
-              <div
-                key={order.id}
-                className="rounded-md border border-slate-200 px-3 py-2.5 text-sm"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-semibold">
-                    {order.number}
-                    {order.table ? (
-                      <span className="ml-1 text-slate-500">{order.table}</span>
-                    ) : null}
-                  </p>
-                  <p className="font-bold">{formatMoney(order.total)}</p>
-                </div>
-                <p className="mt-0.5 text-xs capitalize text-slate-500">
-                  {order.status} · {order.placedAt}
-                </p>
-              </div>
-            ))}
-          </li>
-        ) : null}
-
         {!hasAny ? (
           <li className="px-3 py-8 text-center text-sm text-slate-500">
-            No orders yet. Complete a payment or use Order Layaway.
+            No orders yet. Use Hold, Send Kitchen, or Pay.
           </li>
         ) : null}
       </ul>
@@ -501,15 +551,13 @@ function OrdersQuickPanel() {
           <button
             type="button"
             onClick={() => setReceiptOpen(false)}
-            className="min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-white"
+            className="min-h-11 w-full rounded-md bg-[var(--pos-header)] text-sm font-semibold text-pos-on-header"
           >
             Done
           </button>
         }
       >
-        <pre className="overflow-auto rounded-md bg-slate-50 p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap">
-          {receiptText}
-        </pre>
+        <ReceiptTicket receipt={receiptText} />
       </PosDialog>
     </div>
   );
@@ -518,8 +566,10 @@ function OrdersQuickPanel() {
 function TablesQuickPanel() {
   const tableId = usePosStore((state) => state.tableId);
   const attachTable = usePosStore((state) => state.attachTable);
+  const loadTableTab = usePosStore((state) => state.loadTableTab);
   const setActiveTab = usePosStore((state) => state.setActiveTab);
-  const tables = INITIAL_TABLES;
+  const setStatusMessage = usePosStore((state) => state.setStatusMessage);
+  const tables = useOpsStore((state) => state.tables);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -528,7 +578,7 @@ function TablesQuickPanel() {
         <p className="text-xs text-slate-500">
           {tableId
             ? `Ticket linked to ${tables.find((t) => t.id === tableId)?.label}`
-            : "Tap a table for this order"}
+            : "Tap free to assign, or open an existing tab"}
         </p>
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-3">
@@ -549,10 +599,16 @@ function TablesQuickPanel() {
                       onClick={() => {
                         if (selected) {
                           attachTable(null);
-                        } else {
+                          return;
+                        }
+                        if (table.status === "free" || table.status === "seated") {
                           attachTable({ id: table.id, label: table.label });
                           setActiveTab("menu");
+                          return;
                         }
+                        const result = loadTableTab(table.id);
+                        if (!result.ok) setStatusMessage(result.error);
+                        else setActiveTab("menu");
                       }}
                       className={`min-h-14 rounded-md border text-xs font-bold transition ${
                         selected
@@ -563,6 +619,9 @@ function TablesQuickPanel() {
                       }`}
                     >
                       {table.label}
+                      <span className="mt-0.5 block text-[9px] font-semibold uppercase opacity-70">
+                        {table.status}
+                      </span>
                     </button>
                   );
                 })}
