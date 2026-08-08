@@ -46,6 +46,7 @@ import type {
 } from "@/lib/types";
 import { assertCan } from "@/lib/permissions";
 import { useAuthStore } from "@/store/auth-store";
+import { useCatalogStore } from "@/store/catalog-store";
 import { useCustomerStore } from "@/store/customer-store";
 import { useSettingsStore } from "@/store/settings-store";
 
@@ -436,7 +437,10 @@ function applyInventoryDeductions(
   lines: OrderLine[],
   branchId: string,
 ): InventoryItem[] {
-  const deductions = recipeDeductionsForLines(lines);
+  const deductions = recipeDeductionsForLines(
+    lines,
+    useCatalogStore.getState().products,
+  );
   if (deductions.length === 0) return inventory;
 
   return inventory.map((item) => {
@@ -462,7 +466,10 @@ function restoreInventory(
   lines: OrderLine[],
   branchId: string,
 ): InventoryItem[] {
-  const deductions = recipeDeductionsForLines(lines);
+  const deductions = recipeDeductionsForLines(
+    lines,
+    useCatalogStore.getState().products,
+  );
   if (deductions.length === 0) return inventory;
 
   return inventory.map((item) => {

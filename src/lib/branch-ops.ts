@@ -38,17 +38,26 @@ const TABLE_TEMPLATE: Omit<FloorTable, "branchId">[] = [
 ];
 
 const INVENTORY_TEMPLATE: Omit<InventoryItem, "branchId">[] = [
-  { id: "i1", name: "Espresso beans", unit: "kg", onHand: 4.2, parLevel: 5, category: "Barista" },
-  { id: "i2", name: "Whole milk", unit: "L", onHand: 18, parLevel: 20, category: "Barista" },
-  { id: "i3", name: "Oat milk", unit: "L", onHand: 6, parLevel: 10, category: "Barista" },
+  { id: "i1", name: "Espresso beans", unit: "kg", onHand: 4.2, parLevel: 5, category: "Hot Drinks" },
+  { id: "i2", name: "Whole milk", unit: "L", onHand: 18, parLevel: 20, category: "Hot Drinks" },
+  { id: "i3", name: "Oat milk", unit: "L", onHand: 6, parLevel: 10, category: "Hot Drinks" },
   { id: "i4", name: "Burger patties", unit: "pcs", onHand: 42, parLevel: 40, category: "Mains" },
   { id: "i5", name: "Fries (frozen)", unit: "kg", onHand: 8, parLevel: 12, category: "Sides" },
   { id: "i6", name: "Cod fillets", unit: "pcs", onHand: 9, parLevel: 15, category: "Mains" },
-  { id: "i7", name: "Lager keg", unit: "L", onHand: 28, parLevel: 30, category: "Beers" },
+  { id: "i7", name: "Lemonade syrup", unit: "L", onHand: 3.5, parLevel: 5, category: "Cold Drinks" },
   { id: "i8", name: "Brioche buns", unit: "pcs", onHand: 24, parLevel: 30, category: "Mains" },
   { id: "i9", name: "Cheesecake", unit: "slices", onHand: 3, parLevel: 8, category: "Desserts" },
-  { id: "i10", name: "Cola syrup", unit: "L", onHand: 2.5, parLevel: 4, category: "Soft Drinks" },
+  { id: "i10", name: "Cola syrup", unit: "L", onHand: 2.5, parLevel: 4, category: "Cold Drinks" },
 ];
+
+/** Ingredient picker options for menu recipe editing (catalog keys). */
+export function inventoryIngredientOptions(): {
+  id: string;
+  name: string;
+  unit: string;
+}[] {
+  return INVENTORY_TEMPLATE.map(({ id, name, unit }) => ({ id, name, unit }));
+}
 
 export function tablesForBranch(branchId: string): FloorTable[] {
   return TABLE_TEMPLATE.map((table) => ({

@@ -20,7 +20,7 @@ export function PosScreen() {
         <section className="relative flex min-w-0 flex-1 overflow-hidden bg-[var(--pos-menu)]">
           <div
             className={`min-w-0 overflow-hidden ${
-              activeCategoryId ? "w-1/2 border-r border-white/15" : "w-full"
+              activeCategoryId ? "w-1/2 border-r border-slate-200" : "w-full"
             }`}
           >
             <CategoryGrid compact={Boolean(activeCategoryId)} />

@@ -17,7 +17,7 @@ import type {
   InventoryItem,
 } from "@/lib/module-data";
 import { DEMO_RESTAURANT_ID } from "@/lib/tenant";
-import type { CashDrawerEvent, OpsOrder, Product } from "@/lib/types";
+import type { CashDrawerEvent, Category, OpsOrder, Product } from "@/lib/types";
 import {
   normalizeBranches,
   resolveActiveBranch,
@@ -323,6 +323,32 @@ export async function saveCatalog(
     STORES.products,
     restaurantId,
     products.map((row) => ({ ...row, restaurantId })),
+    DEMO_RESTAURANT_ID,
+  );
+}
+
+export async function loadCategories(
+  restaurantId: string,
+): Promise<Category[]> {
+  const db = await getLocalDb();
+  return getTenantAll<Category>(
+    db,
+    STORES.categories,
+    restaurantId,
+    DEMO_RESTAURANT_ID,
+  );
+}
+
+export async function saveCategories(
+  restaurantId: string,
+  categories: Category[],
+): Promise<void> {
+  const db = await getLocalDb();
+  await putTenantAll(
+    db,
+    STORES.categories,
+    restaurantId,
+    categories.map((row) => ({ ...row, restaurantId })),
     DEMO_RESTAURANT_ID,
   );
 }

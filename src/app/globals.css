@@ -301,6 +301,30 @@ canvas {
   }
 }
 
+/* Menu Manager drag-to-reorder */
+.menu-tile-drag-handle {
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.menu-tile-drag-handle:active {
+  cursor: grabbing;
+}
+
+.menu-tile-idle {
+  z-index: 1;
+}
+
+.menu-tile-dragging {
+  opacity: 0.96;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--pos-header) 55%, white),
+    0 14px 28px rgb(15 23 42 / 0.22);
+  cursor: grabbing;
+  touch-action: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pos-tile,
   .animate-in,
@@ -308,6 +332,10 @@ canvas {
   .login-card,
   .login-form > * {
     animation: none !important;
+  }
+
+  .menu-tile-dragging {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--pos-header) 55%, white);
   }
 }
 

@@ -3,7 +3,6 @@ import {
   matchesBranchScope,
 } from "@/lib/branch-access";
 import { formatMoney, titleCaseLabel } from "@/lib/format";
-import { categories } from "@/lib/mock-data";
 import { navPagesForRole } from "@/lib/nav";
 import { can, canAccessPath } from "@/lib/permissions";
 import type { RoleId } from "@/lib/permissions";
@@ -54,7 +53,11 @@ function matches(query: string, ...parts: Array<string | null | undefined>) {
 }
 
 function categoryName(categoryId: string): string {
-  return categories.find((category) => category.id === categoryId)?.name ?? "Menu";
+  return (
+    useCatalogStore
+      .getState()
+      .categories.find((category) => category.id === categoryId)?.name ?? "Menu"
+  );
 }
 
 function currentRole(): RoleId | null {
@@ -134,7 +137,7 @@ export function runGlobalSearch(rawQuery: string, limit = 40): GlobalSearchResul
           kind: "item",
           title: product.name,
           subtitle: `${categoryName(product.categoryId)} · ${formatMoney(product.price)}${
-            product.available === false ? " · Sold out" : ""
+            product.available === false ? " · Unavailable" : ""
           }`,
           href: canAccessPath(role, "/pos") ? "/pos" : "/menu",
           productId: canAccessPath(role, "/pos") ? product.id : undefined,

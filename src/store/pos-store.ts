@@ -254,8 +254,8 @@ export const usePosStore = create<PosState>((set, get) => ({
     const catalogProduct =
       useCatalogStore.getState().getProduct(product.id) ?? product;
     if (catalogProduct.available === false) {
-      set({ statusMessage: `${catalogProduct.name} is sold out` });
-      return { ok: false, error: `${catalogProduct.name} is sold out` };
+      set({ statusMessage: `${catalogProduct.name} is unavailable` });
+      return { ok: false, error: `${catalogProduct.name} is unavailable` };
     }
 
     set((state) => {

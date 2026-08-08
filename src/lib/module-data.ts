@@ -109,7 +109,7 @@ export const INITIAL_ORDERS: TicketOrder[] = [
     status: "open",
     guestName: "Harper Wells",
     items: [
-      { name: "Classic Burger", quantity: 2 },
+      { name: "Chicken Burger", quantity: 2 },
       { name: "Fries", quantity: 2 },
       { name: "Cola", quantity: 2 },
     ],
@@ -124,7 +124,7 @@ export const INITIAL_ORDERS: TicketOrder[] = [
     status: "preparing",
     guestName: "Alex Chen",
     items: [
-      { name: "Latte", quantity: 2 },
+      { name: "Latte Regular", quantity: 2 },
       { name: "Club Sandwich", quantity: 1 },
     ],
     total: 15.75,
@@ -140,9 +140,9 @@ export const INITIAL_ORDERS: TicketOrder[] = [
     guestName: "Samira Khan",
     items: [
       { name: "Fish & Chips", quantity: 1 },
-      { name: "Lager Pint", quantity: 1 },
+      { name: "Cola", quantity: 1 },
     ],
-    total: 21.15,
+    total: 18.45,
     placedAt: "13:48",
     server: "Sam",
   },
@@ -185,7 +185,7 @@ export const INITIAL_ORDERS: TicketOrder[] = [
     status: "paid",
     guestName: "Harper Wells",
     items: [
-      { name: "Classic Burger", quantity: 2 },
+      { name: "Chicken Burger", quantity: 2 },
       { name: "Fries", quantity: 2 },
       { name: "Cola", quantity: 2 },
       { name: "Cheesecake", quantity: 1 },
@@ -202,7 +202,7 @@ export const INITIAL_ORDERS: TicketOrder[] = [
     status: "paid",
     guestName: "Alex Chen",
     items: [
-      { name: "Latte", quantity: 3 },
+      { name: "Latte Regular", quantity: 3 },
       { name: "Chocolate Brownie", quantity: 2 },
     ],
     total: 22.1,
@@ -219,10 +219,10 @@ export const INITIAL_ORDERS: TicketOrder[] = [
     guestName: "Samira Khan",
     items: [
       { name: "Fish & Chips", quantity: 2 },
-      { name: "Lager Pint", quantity: 2 },
+      { name: "Cola", quantity: 2 },
       { name: "Side Salad", quantity: 1 },
     ],
-    total: 46.25,
+    total: 40.85,
     placedAt: "13:05",
     server: "Sam",
     method: "card",
@@ -234,7 +234,7 @@ export const INITIAL_ORDERS: TicketOrder[] = [
     status: "paid",
     guestName: "Riley Morgan",
     items: [
-      { name: "Latte", quantity: 2 },
+      { name: "Latte Regular", quantity: 2 },
       { name: "Cappuccino", quantity: 1 },
       { name: "Avocado Toast", quantity: 1 },
     ],
@@ -250,7 +250,7 @@ export const INITIAL_ORDERS: TicketOrder[] = [
     status: "paid",
     guestName: "Riley Morgan",
     items: [
-      { name: "Classic Burger", quantity: 1 },
+      { name: "Chicken Burger", quantity: 1 },
       { name: "Fries", quantity: 1 },
       { name: "Cola", quantity: 1 },
     ],
@@ -267,7 +267,7 @@ export const INITIAL_ORDERS: TicketOrder[] = [
     status: "paid",
     guestName: "Jordan Lee",
     items: [
-      { name: "Lager Pint", quantity: 2 },
+      { name: "Fresh Orange Juice", quantity: 2 },
       { name: "Soup of the Day", quantity: 1 },
       { name: "Garlic Bread", quantity: 1 },
     ],
@@ -332,7 +332,7 @@ export const INITIAL_ORDERS: TicketOrder[] = [
     channel: "eat_in",
     status: "paid",
     items: [
-      { name: "Gin & Tonic", quantity: 2 },
+      { name: "Iced Latte", quantity: 2 },
       { name: "Bar Nuts", quantity: 1 },
       { name: "Loaded Fries", quantity: 1 },
     ],
@@ -379,7 +379,7 @@ export const INITIAL_KITCHEN: KitchenTicket[] = [
     channel: "eat_in",
     status: "queued",
     items: [
-      { name: "Classic Burger", quantity: 2 },
+      { name: "Chicken Burger", quantity: 2 },
       { name: "Fries", quantity: 2 },
     ],
     notes: "No onions on one burger",
@@ -498,16 +498,16 @@ export const INITIAL_CUSTOMERS: CustomerRecord[] = [
 
 /** Legacy single-branch stock — ops normalizes to all branches on hydrate. */
 export const INITIAL_INVENTORY: InventoryItem[] = [
-  { id: `${D}:i1`, branchId: D, name: "Espresso beans", unit: "kg", onHand: 4.2, parLevel: 5, category: "Barista" },
-  { id: `${D}:i2`, branchId: D, name: "Whole milk", unit: "L", onHand: 18, parLevel: 20, category: "Barista" },
-  { id: `${D}:i3`, branchId: D, name: "Oat milk", unit: "L", onHand: 6, parLevel: 10, category: "Barista" },
+  { id: `${D}:i1`, branchId: D, name: "Espresso beans", unit: "kg", onHand: 4.2, parLevel: 5, category: "Hot Drinks" },
+  { id: `${D}:i2`, branchId: D, name: "Whole milk", unit: "L", onHand: 18, parLevel: 20, category: "Hot Drinks" },
+  { id: `${D}:i3`, branchId: D, name: "Oat milk", unit: "L", onHand: 6, parLevel: 10, category: "Hot Drinks" },
   { id: `${D}:i4`, branchId: D, name: "Burger patties", unit: "pcs", onHand: 42, parLevel: 40, category: "Mains" },
   { id: `${D}:i5`, branchId: D, name: "Fries (frozen)", unit: "kg", onHand: 8, parLevel: 12, category: "Sides" },
   { id: `${D}:i6`, branchId: D, name: "Cod fillets", unit: "pcs", onHand: 9, parLevel: 15, category: "Mains" },
-  { id: `${D}:i7`, branchId: D, name: "Lager keg", unit: "L", onHand: 28, parLevel: 30, category: "Beers" },
+  { id: `${D}:i7`, branchId: D, name: "Lemonade syrup", unit: "L", onHand: 3.5, parLevel: 5, category: "Cold Drinks" },
   { id: `${D}:i8`, branchId: D, name: "Brioche buns", unit: "pcs", onHand: 24, parLevel: 30, category: "Mains" },
   { id: `${D}:i9`, branchId: D, name: "Cheesecake", unit: "slices", onHand: 3, parLevel: 8, category: "Desserts" },
-  { id: `${D}:i10`, branchId: D, name: "Cola syrup", unit: "L", onHand: 2.5, parLevel: 4, category: "Soft Drinks" },
+  { id: `${D}:i10`, branchId: D, name: "Cola syrup", unit: "L", onHand: 2.5, parLevel: 4, category: "Cold Drinks" },
 ];
 
 export const REPORT_SUMMARY = {
@@ -520,8 +520,8 @@ export const REPORT_SUMMARY = {
   voids: 3,
   discounts: 86.4,
   topItems: [
-    { name: "Latte", qty: 62, revenue: 210.8 },
-    { name: "Classic Burger", qty: 28, revenue: 406.0 },
+    { name: "Latte Regular", qty: 62, revenue: 210.8 },
+    { name: "Chicken Burger", qty: 28, revenue: 406.0 },
     { name: "Fish & Chips", qty: 19, revenue: 303.05 },
     { name: "Cola", qty: 41, revenue: 102.5 },
   ],

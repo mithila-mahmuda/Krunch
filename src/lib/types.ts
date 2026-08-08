@@ -8,10 +8,26 @@ export type TicketStatus = "open" | "preparing" | "ready" | "paid" | "void";
 export type KitchenStatus = "queued" | "preparing" | "ready" | "served";
 export type TableStatus = "free" | "seated" | "ordered" | "bill";
 
+/** One inventory ingredient used to make a product (per unit sold). */
+export interface RecipeIngredient {
+  /** Inventory catalog key (`i1`) or scoped id — matched via `inventoryCatalogKey`. */
+  inventoryId: string;
+  quantity: number;
+}
+
 export interface Category {
   id: string;
+  /** Owning restaurant (tenant). */
+  restaurantId?: string;
   name: string;
-  tone: CategoryTone;
+  /** Hex colour for category + item tiles on the till (`#rrggbb`). */
+  color?: string;
+  /** Optional photo used as the till tile background (data URL). */
+  imageDataUrl?: string | null;
+  /** Display order on the till (lower first). */
+  sortOrder?: number;
+  /** @deprecated Prefer `color`. Kept for older stored rows. */
+  tone?: CategoryTone;
 }
 
 export interface Product {
@@ -21,7 +37,17 @@ export interface Product {
   categoryId: string;
   name: string;
   price: number;
+  /** Optional unit cost for margin / utilisation tracking. */
+  cost?: number;
   available?: boolean;
+  /** Optional till-tile colour (`#rrggbb`). Falls back to category colour. */
+  color?: string;
+  /** Optional photo used as the till tile background (data URL). */
+  imageDataUrl?: string | null;
+  /** Ingredients deducted from inventory when this item is sold. */
+  recipe?: RecipeIngredient[];
+  /** Display order within its category (lower first). */
+  sortOrder?: number;
 }
 
 export interface Promotion {

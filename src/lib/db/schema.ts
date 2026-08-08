@@ -3,7 +3,7 @@
  * Orders keep line items nested for simplicity; split to `order_lines` in Postgres.
  */
 export const DB_NAME = "krunch";
-export const DB_VERSION = 5;
+export const DB_VERSION = 6;
 
 export const STORES = {
   meta: "meta",
@@ -12,6 +12,7 @@ export const STORES = {
   inventory_items: "inventory_items",
   customers: "customers",
   products: "products",
+  categories: "categories",
   till_settings: "till_settings",
   auth_sessions: "auth_sessions",
   restaurant_accounts: "restaurant_accounts",

@@ -9,6 +9,8 @@ interface PosDialogProps {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  /** Shown to the left of the close control in the header. */
+  headerActions?: ReactNode;
 }
 
 export function PosDialog({
@@ -17,6 +19,7 @@ export function PosDialog({
   onClose,
   children,
   footer,
+  headerActions,
 }: PosDialogProps) {
   const titleId = useId();
 
@@ -53,18 +56,21 @@ export function PosDialog({
         <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
           <h2
             id={titleId}
-            className="font-[family-name:var(--font-display)] text-lg font-bold"
+            className="min-w-0 flex-1 font-[family-name:var(--font-display)] text-lg font-bold"
           >
             {title}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-slate-100"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            {headerActions}
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-slate-100"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
         <div className="min-h-0 flex-1 overflow-auto px-4 py-4">{children}</div>
         {footer ? (

@@ -12,6 +12,8 @@ interface ModuleShellProps {
   /** Shown immediately after the title (e.g. assigned branch chip). */
   titleAddon?: ReactNode;
   actions?: ReactNode;
+  /** Drop the centered max-width for full-bleed module layouts. */
+  wide?: boolean;
   children: ReactNode;
 }
 
@@ -19,13 +21,18 @@ export function ModuleShell({
   title,
   titleAddon,
   actions,
+  wide = false,
   children,
 }: ModuleShellProps) {
   const setNavOpen = usePosStore((state) => state.setNavOpen);
 
   return (
-    <div className="module-shell h-dvh overflow-y-auto overscroll-contain bg-[var(--module-bg)] text-slate-900">
-      <header className="sticky top-0 z-20 bg-[var(--pos-header)] pt-[env(safe-area-inset-top)] text-pos-on-header shadow-sm">
+    <div
+      className={`module-shell h-dvh overscroll-contain bg-[var(--module-bg)] text-slate-900 ${
+        wide ? "flex flex-col overflow-hidden" : "overflow-y-auto"
+      }`}
+    >
+      <header className="sticky top-0 z-20 shrink-0 bg-[var(--pos-header)] pt-[env(safe-area-inset-top)] text-pos-on-header shadow-sm">
         <div className="flex min-h-14 items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4">
           <button
             type="button"
@@ -57,7 +64,13 @@ export function ModuleShell({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 sm:py-6">
+      <main
+        className={
+          wide
+            ? "flex min-h-0 w-full flex-1 flex-col overflow-hidden px-3 py-4 sm:px-4 sm:py-5"
+            : "mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 sm:py-6"
+        }
+      >
         {children}
       </main>
 

@@ -110,7 +110,12 @@ export async function clearRestaurantWorkspace(): Promise<void> {
   useSettingsStore.setState({ restaurantId: null, hydrated: false });
   useRolesStore.setState({ restaurantId: null, roles: [], hydrated: false });
   useStaffStore.setState({ restaurantId: null, staff: [], hydrated: false });
-  useCatalogStore.setState({ restaurantId: null, hydrated: false });
+  useCatalogStore.setState({
+    restaurantId: null,
+    categories: [],
+    products: [],
+    hydrated: false,
+  });
   useCustomerStore.setState({ restaurantId: null, hydrated: false });
   useOpsStore.setState({ restaurantId: null, hydrated: false });
 }
